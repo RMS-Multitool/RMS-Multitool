@@ -1,0 +1,4 @@
+{
+  "version": "1.2.0",
+  "changelog": "Initial release with kanban dashboard, email alerts, and auto-update checker."
+}
