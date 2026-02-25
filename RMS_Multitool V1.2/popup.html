@@ -171,9 +171,19 @@
       Open Quote Dashboard
       <span style="font-size:10px;color:var(--text-muted);margin-left:4px;">↗</span>
     </button>
+
+    <!-- Update checker -->
+    <div id="updateSection" style="display:none; margin-top:14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px;">
+      <div id="updateContent"></div>
+    </div>
   </div>
 
-  <div style="text-align:center;padding:10px 0 14px;font-size:11px;color:var(--accent);letter-spacing:0.5px;font-family:'Syne',sans-serif;font-weight:700;">created by Dan Hawes</div>
+  <div style="text-align:center; padding:8px 0 4px;">
+    <span style="font-size:11px;color:var(--accent);letter-spacing:0.5px;font-family:'Syne',sans-serif;font-weight:700;">created by Dan Hawes</span>
+  </div>
+  <div style="text-align:center; padding:0 0 14px;">
+    <span id="versionBadge" style="font-size:10px; color:var(--text-muted); background:var(--surface); border:1px solid var(--border); border-radius:5px; padding:3px 8px; font-family:'DM Mono',monospace;"></span>
+  </div>
 
   <div class="toast" id="toast"></div>
   <script src="popup.js"></script>

@@ -57,8 +57,10 @@
   const emailTemplateId  = $('emailTemplateId');
   const emailPublicKey   = $('emailPublicKey');
   const emailTo          = $('emailTo');
-  const emailThreshold   = $('emailThreshold');
-  const emailRepeat      = $('emailRepeat');
+  const emailThresholdValue = $('emailThresholdValue');
+  const emailThresholdUnit  = $('emailThresholdUnit');
+  const emailRepeatValue    = $('emailRepeatValue');
+  const emailRepeatUnit     = $('emailRepeatUnit');
   const testEmailBtn     = $('testEmailBtn');
   const emailTestStatus  = $('emailTestStatus');
 
@@ -668,104 +670,29 @@ Sent by RMS Multitool Quote Dashboard<br>Quote unattended for <strong style="col
     }
   });
 
-  // ── Version & Update ──────────────────────────────────────
-  const CURRENT_VERSION = '1.2.0';
-
-  // !! GitHub repo for update checking !!
-  const GITHUB_OWNER = 'RMS-Multitool';
-  const GITHUB_REPO  = 'RMS-Multitool';
-  const VERSION_URL  = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/main/version.json`;
-  const RELEASES_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
-  const ZIP_URL      = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/archive/refs/heads/main.zip`;
-
-  function compareVersions(a, b) {
-    const pa = a.split('.').map(Number);
-    const pb = b.split('.').map(Number);
-    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-      const na = pa[i] || 0;
-      const nb = pb[i] || 0;
-      if (na > nb) return 1;
-      if (na < nb) return -1;
+  // ── Time input helpers ─────────────────────────────────────
+  function setTimeInputs(totalSec, valueEl, unitEl) {
+    if (!totalSec || totalSec <= 0) {
+      valueEl.value = '0';
+      unitEl.value = '3600';
+      return;
     }
-    return 0;
+    if (totalSec % 86400 === 0) {
+      valueEl.value = String(totalSec / 86400);
+      unitEl.value = '86400';
+    } else if (totalSec % 3600 === 0) {
+      valueEl.value = String(totalSec / 3600);
+      unitEl.value = '3600';
+    } else {
+      valueEl.value = String(Math.round(totalSec / 60));
+      unitEl.value = '60';
+    }
   }
 
-  async function checkForUpdates() {
-    const section = $('updateSection');
-    const content = $('updateContent');
-
-    // Try raw.githubusercontent.com first, fall back to GitHub API
-    const urls = [
-      `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/main/version.json?t=${Date.now()}`,
-      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/version.json`
-    ];
-
-    let data = null;
-
-    for (const url of urls) {
-      try {
-        console.log(`[Dashboard] Checking for updates: ${url}`);
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) { console.warn(`[Dashboard] Update check ${res.status} from ${url}`); continue; }
-
-        if (url.includes('api.github.com')) {
-          // GitHub API returns base64 encoded content
-          const apiData = await res.json();
-          const decoded = atob(apiData.content.replace(/\n/g, ''));
-          data = JSON.parse(decoded);
-        } else {
-          data = await res.json();
-        }
-        console.log(`[Dashboard] Got version data:`, data);
-        break;
-      } catch (e) {
-        console.warn(`[Dashboard] Update check failed for ${url}:`, e.message);
-      }
-    }
-
-    if (data && data.version) {
-      const latest = data.version;
-      if (compareVersions(latest, CURRENT_VERSION) > 0) {
-        section.style.display = 'block';
-        section.style.borderColor = 'rgba(0,229,160,0.3)';
-        content.innerHTML = `
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <div style="width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent-glow);"></div>
-            <span style="font-size:12px; font-weight:700; color:var(--accent);">Update Available — v${esc(latest)}</span>
-          </div>
-          ${data.changelog ? `<div style="font-size:11px; color:var(--text-muted); margin-bottom:10px; line-height:1.5;">${esc(data.changelog)}</div>` : ''}
-          <div style="display:flex; gap:8px;">
-            <a href="${ZIP_URL}" target="_blank" style="padding:7px 14px; background:var(--accent); color:var(--bg); font-family:'DM Mono',monospace; font-size:11px; font-weight:700; border-radius:6px; text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
-              ⬇ Download v${esc(latest)}
-            </a>
-            <a href="${RELEASES_URL}" target="_blank" style="padding:7px 14px; background:var(--surface2); color:var(--text-muted); font-family:'DM Mono',monospace; font-size:11px; border-radius:6px; text-decoration:none; border:1px solid var(--border);">
-              Release Notes
-            </a>
-          </div>
-          <div style="font-size:10px; color:var(--text-muted); margin-top:8px; opacity:0.7;">
-            Download, extract, replace files in your extension folder, then reload at chrome://extensions
-          </div>
-        `;
-      } else {
-        section.style.display = 'block';
-        section.style.borderColor = 'var(--border)';
-        content.innerHTML = `
-          <div style="display:flex; align-items:center; gap:8px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <span style="font-size:11px; color:var(--text-muted);">You're on the latest version (v${CURRENT_VERSION})</span>
-          </div>
-        `;
-      }
-    } else {
-      section.style.display = 'block';
-      section.style.borderColor = 'var(--border)';
-      content.innerHTML = `
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:11px; color:var(--text-muted);">Couldn't check for updates.</span>
-          <a href="https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}" target="_blank" style="font-size:11px; color:var(--accent); text-decoration:none;">Check manually →</a>
-        </div>
-      `;
-    }
+  function getTimeInputSec(valueEl, unitEl) {
+    const v = parseFloat(valueEl.value) || 0;
+    const u = parseInt(unitEl.value) || 3600;
+    return Math.round(v * u);
   }
 
   // ── Settings panel ───────────────────────────────────────
@@ -785,7 +712,6 @@ Sent by RMS Multitool Quote Dashboard<br>Quote unattended for <strong style="col
   });
 
   function openSettings() {
-    $('versionBadge').textContent = 'v' + CURRENT_VERSION;
     pollIntervalSelect.value = config.pollInterval;
     stageFilter.querySelectorAll('.stage-chip').forEach(c => c.classList.toggle('active', config.stages.includes(c.dataset.stage)));
     deptRulesContainer.innerHTML = '';
@@ -797,13 +723,14 @@ Sent by RMS Multitool Quote Dashboard<br>Quote unattended for <strong style="col
     emailTemplateId.value = config.email.templateId || '';
     emailPublicKey.value = config.email.publicKey || '';
     emailTo.value = config.email.to || '';
-    emailThreshold.value = String(config.email.thresholdSec || 0);
-    emailRepeat.value = String(config.email.repeatSec || 0);
+
+    // Decompose thresholdSec into value+unit
+    setTimeInputs(config.email.thresholdSec || 0, emailThresholdValue, emailThresholdUnit);
+    setTimeInputs(config.email.repeatSec || 0, emailRepeatValue, emailRepeatUnit);
     emailTestStatus.textContent = '';
 
     settingsOverlay.classList.add('open');
     settingsPanel.classList.add('open');
-    checkForUpdates();
   }
   function closeSettings() {
     settingsOverlay.classList.remove('open');
@@ -986,8 +913,8 @@ Sent by RMS Multitool Quote Dashboard<br>Quote unattended for <strong style="col
       templateId: emailTemplateId.value.trim(),
       publicKey: emailPublicKey.value.trim(),
       to: emailTo.value.trim(),
-      thresholdSec: parseInt(emailThreshold.value) || 0,
-      repeatSec: parseInt(emailRepeat.value) || 0
+      thresholdSec: getTimeInputSec(emailThresholdValue, emailThresholdUnit),
+      repeatSec: getTimeInputSec(emailRepeatValue, emailRepeatUnit)
     };
 
     saveConfig(); closeSettings(); lastResults = []; renderBoard(); startPolling();

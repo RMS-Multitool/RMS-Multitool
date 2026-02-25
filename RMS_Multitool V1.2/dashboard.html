@@ -259,14 +259,9 @@
   <div class="settings-panel" id="settingsPanel">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
       <h2>Dashboard Settings</h2>
-      <div id="versionBadge" style="font-size:10px; color:var(--text-muted); background:var(--surface); border:1px solid var(--border); border-radius:5px; padding:3px 8px;">v1.2.0</div>
     </div>
     <p class="settings-sub">Configure departments and which products trigger alerts</p>
 
-    <!-- Update checker -->
-    <div id="updateSection" style="display:none; margin-bottom:16px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px;">
-      <div id="updateContent"></div>
-    </div>
     <div class="settings-section-title">Poll Interval</div>
     <div class="poll-setting">
       <label>Check every</label>
@@ -325,29 +320,27 @@
       </div>
       <div class="email-field">
         <label>Alert after</label>
-        <select id="emailThreshold">
-          <option value="0">Disabled</option>
-          <option value="1800">30 minutes</option>
-          <option value="3600">1 hour</option>
-          <option value="7200">2 hours</option>
-          <option value="14400">4 hours</option>
-          <option value="28800">8 hours</option>
-          <option value="43200">12 hours</option>
-          <option value="86400">24 hours</option>
-          <option value="172800">2 days</option>
-          <option value="259200">3 days</option>
-        </select>
+        <div style="display:flex; gap:4px;">
+          <input type="number" id="emailThresholdValue" min="0" step="1" placeholder="0" style="flex:1; width:60px;" value="0" />
+          <select id="emailThresholdUnit" style="flex:0 0 auto; width:90px;">
+            <option value="60">minutes</option>
+            <option value="3600" selected>hours</option>
+            <option value="86400">days</option>
+          </select>
+        </div>
+        <div class="rule-hint" style="margin-top:2px;">Set to 0 to disable</div>
       </div>
       <div class="email-field">
         <label>Re-alert every</label>
-        <select id="emailRepeat">
-          <option value="0">Don't repeat</option>
-          <option value="3600">1 hour</option>
-          <option value="14400">4 hours</option>
-          <option value="28800">8 hours</option>
-          <option value="43200">12 hours</option>
-          <option value="86400">24 hours</option>
-        </select>
+        <div style="display:flex; gap:4px;">
+          <input type="number" id="emailRepeatValue" min="0" step="1" placeholder="0" style="flex:1; width:60px;" value="0" />
+          <select id="emailRepeatUnit" style="flex:0 0 auto; width:90px;">
+            <option value="60">minutes</option>
+            <option value="3600" selected>hours</option>
+            <option value="86400">days</option>
+          </select>
+        </div>
+        <div class="rule-hint" style="margin-top:2px;">Set to 0 for no repeat</div>
       </div>
     </div>
     <div class="email-test-row">

@@ -29,5 +29,11 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "RMS Multitool Settings"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["dashboard.html"],
+      "matches": ["https://*.current-rms.com/*"]
+    }
+  ]
 }
