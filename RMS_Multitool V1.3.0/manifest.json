@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "RMS Multitool",
+  "version": "1.3.0",
+  "description": "Multi-store stock checker with date-aware availability, quote attention dashboard, and email alerts for Current RMS.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://alvgroup.current-rms.com/*"],
+      "all_frames": true,
+      "js": ["content.js"]
+    }
+  ],
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": [
+    "https://alvgroup.current-rms.com/*",
+    "https://api.current-rms.com/*",
+    "https://api.emailjs.com/*",
+    "https://raw.githubusercontent.com/*",
+    "https://api.github.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "RMS Multitool Settings"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["dashboard.html"],
+      "matches": ["https://*.current-rms.com/*"]
+    }
+  ]
+}
