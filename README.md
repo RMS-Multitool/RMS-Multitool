@@ -1,134 +1,202 @@
 # RMS Multitool
 
-Chrome extension for [CurrentRMS](https://www.current-rms.com/) — multi-store stock checker with date-aware availability, quote attention dashboard, and email alerts.
+Chrome extension for [`CurrentRMS`](https://www.current-rms.com/) that adds:
+
+- Multi‑store stock visibility directly on opportunities
+- Quote and crew dashboards for at‑a‑glance scheduling and organisation
+- A quote mute system to hide internal items from client PDFs while keeping them in the opportunity
+
+---
 
 ## Features
 
-### Multi-Store Stock Checker
+### Multi‑Store Stock Checker
 
-Three display modes, selectable from the extension popup:
+See usable stock across multiple stores without leaving the opportunity screen.
 
-#### Off
-Stock display disabled — CurrentRMS behaves as normal.
+- **Three modes** — switch between Off, Simple, and Date‑Aware from the extension popup
+- **Off**: CurrentRMS behaves exactly as normal, with no extra indicators
+- **Simple Mode**:
+  - Shows the **total held quantity per enabled store** on each item row
+  - At‑a‑glance text tags like `📦 Store 1: 50 | Store 2: 12 | Store 3: 8`
+  - Stores with **zero stock are highlighted in red** so problem locations stand out immediately
+- **Date‑Aware Mode**:
+  - Shows **real availability for the quote’s date range**, not just what’s on the shelf
+  - Takes into account **overlapping orders and reserved quotations** so you see what’s actually free to use
+  - Uses **colour‑coded tags** per store to indicate whether an item is fully available, just quoted elsewhere, partially committed, or overbooked
+  - Hover over a tag to see **which jobs are using the stock**, giving context before you promise gear
 
-#### Simple Mode
-- Shows total held stock per enabled store on each item row
-- Quick at-a-glance view: `📦 FOHP Aus: 50 | PICA: 12 | TTY: 8`
-- Stores with zero stock shown in red
+The goal is to make it obvious, from the quote screen alone, **where stock can be pulled from and where conflicts exist**, so planners don’t have to bounce between reports or stores to make simple decisions.
 
-#### Date-Aware Mode *(new in v1.3.0)*
-- Shows **actual availability** for the quote's date range — not just total held stock
-- Queries all overlapping orders and reserved quotations to calculate what's truly available per store
-- **Colour-coded tags** per store:
-  - 🟢 **Green** — fully available, no conflicts
-  - 🔵 **Blue** — available, but quoted on other open quotes (shown as info)
-  - 🟠 **Orange** — partially committed (shows available/held, e.g. `12/50`)
-  - 🔴 **Red** — zero or negative availability (overbooked or no stock)
-- **Current store uses CurrentRMS's own number** — reads the DOM value directly for perfect accuracy, including quarantine, post-rent unavailability, and delivery/collection buffers
-- **Other stores calculated via API** — held stock minus booked (orders) minus reserved (reserved quotations)
-- **Hover tooltips** — hover any store tag to see exactly which jobs are using the stock, with quantities and booking states
-- **Two-phase loading** — firm bookings (orders + reserved quotes) load first for fast tag rendering; open/provisional quotes load in the background for tooltip enrichment
-- **Pre-warm cache** — cache building starts the moment you land on an opportunity page, before product rows are scanned
-- **15-minute cache** — subsequent product lookups are instant; cache shared across all products on the page
-- **Live settings reload** — change mode in the popup and tags update instantly without refreshing the page
+---
+
+### Quote Mute System *(introduced in v1.4.x)*
+
+Hide groups and items from client‑facing PDFs **without** deleting them from the opportunity.
+
+- **Per‑row eye toggles**:
+  - Each item and group row in the opportunity editor gets an eye icon
+  - Click to **mute/unmute** content that you don’t want the client to see (e.g. internal allowances, backup items, discounts, or internal breakdowns)
+- **Client PDFs stay clean**:
+  - Muted groups and items are **omitted from the PDF** while staying in the opportunity for internal use
+  - Totals are **automatically adjusted** so the PDF numbers match what the client is meant to see
+- **Visual feedback in the editor**:
+  - Muted rows are **dimmed with a red tint** and show a clear “MUTED” indicator
+  - Child rows of a muted group visually follow the parent’s state so it’s obvious what’s hidden
+- **Totals that match what’s visible**:
+  - The **opportunity total at the bottom** of the page shows both the adjusted total and a “was $X” reference
+  - The **revenue summary panel** (Rental Charge Total, Charge Total, Tax Total, Total With Tax) also reflects muted amounts with “was” indicators
+- **Safe for teams**:
+  - Mute state is stored centrally so **all users see the same mute/unmute status**
+  - Can be **enabled or disabled from the extension popup** if you only want to use it on certain workflows
+
+On the PDF side, a dedicated Liquid template handles hiding muted content and adjusting totals, so **what you see as “live” in the editor is exactly what your client sees on the exported PDF.**
+
+---
 
 ### Quote Dashboard
-- **Kanban board** — each department gets its own column, only visible when it has flagged quotes
-- **Future events only** — dual-layer filtering (API-side + client-side) excludes past events automatically
-- **Event dates** on every card with start → end range
-- **Sorted by start date** — soonest events first within each department
-- **Compact cards** — max 3 trigger chips visible, hover any card to see the full list of flagged items in a popup tooltip
-- **Time-on-board timer** — tracks how long each quote has been sitting on the dashboard, persists across refreshes
-- **Email alerts via EmailJS** — sends a styled HTML email when a quote sits unattended past your chosen threshold
-  - Fully embedded email template — everyone gets the same professional dark-themed alert email
-  - Configurable alert threshold (any number of minutes, hours, or days)
-  - Optional repeat alerts at custom intervals
-  - "Emailed" banner on cards that have triggered an alert
-  - Test email button to verify your setup
-- **Auto-update checker** — checks this GitHub repo for new versions when you open the extension popup
-- **CurrentRMS nav integration** — "Quote Dashboard" tab injected directly into the CurrentRMS top navigation bar
-- **Remote branding** — logo loaded from this repo so it stays consistent across all installations
-- **Auto-populated dropdowns** — product groups fetched from your CurrentRMS account
-- **Live product search** — type to search your 1000+ products without loading them all upfront
-- **Configurable stages** — choose which opportunity stages to monitor (Draft, Provisional, Reserved, Order)
-- **Adjustable poll interval** — 1, 2, 5, or 10 minute refresh cycles
-- **TV/monitor friendly** — designed for widescreen display with horizontal scrolling columns
+
+A Kanban‑style overview of upcoming quotes so your team can see **what’s coming up, who it belongs to, and how long it’s been waiting**.
+
+- **Department‑based columns**:
+  - Each department gets its own column
+  - Columns appear only when there are quotes that match that department’s rules, keeping the board focused
+- **Time‑based filtering**:
+  - Filter by **month** (previous/next) or toggle **“All Months”** to see everything
+  - Automatically filters to **future events**, so old jobs don’t clutter the board
+- **Rich quote cards**:
+  - Show **event start and end dates**
+  - Sorted by **start date** (soonest first) within each department
+  - Compact layout that shows the **most important triggers at a glance**, with hover details when needed
+- **Monitoring and alerts**:
+  - A **“time on board”** timer for each card shows how long it has been waiting in that column
+  - Optional **email alerts** can notify you when a quote has been sitting too long
+- **Built for the office:
+  - Designed to be **TV/monitor friendly** for constant display in the office
+  - Integrated directly into **CurrentRMS navigation** as a “Quote Dashboard” tab
+
+The dashboard is meant to be your team’s **shared radar** for upcoming work — what’s new, what’s stuck, and what needs attention next.
+
+---
+
+### Crew / Services Dashboard
+
+A dedicated view for **crew and services**, separate from the main quote dashboard.
+
+- **Service‑focused layout**:
+  - Shows jobs specifically in terms of **crew and labour assignments**
+  - Makes it easy for operations or crew chiefs to see **who’s needed where, and when**
+- **Flexible date range handling**:
+  - Uses the same **month navigation** as the quote dashboard
+  - **“All Months”** is enabled by default so you don’t accidentally hide jobs that span broader windows
+  - Jobs that span multiple months appear in **all relevant months**, so long‑running events are never lost
+
+Use this view as a **live schedule for services**, separate from the gear and quoting view.
+
+---
 
 ## Installation
 
-1. Download or clone this repo
-2. Open Chrome → `chrome://extensions`
-3. Enable **Developer mode** (top right)
-4. Click **Load unpacked** → select the extension folder
-5. Click the RMS Multitool icon → enter your CurrentRMS subdomain and API key
-6. Configure your stores (name and ID for each)
-7. Select your stock display mode (Off / Simple / Date-Aware)
-8. Open any CurrentRMS opportunity — stock tags appear on each item row
-9. Click **Open Quote Dashboard** or use the "Quote Dashboard" tab in the CurrentRMS navigation bar
+1. Download or clone this repo.
+2. Open Chrome and go to `chrome://extensions`.
+3. Enable **Developer mode** (top right).
+4. Click **Load unpacked** and select the extension folder.
+5. Click the **RMS Multitool** icon and enter your **CurrentRMS subdomain** and **API key**.
+6. Configure your **stores** (name and ID for each).
+7. Choose your **stock display mode** (Off / Simple / Date‑Aware).
+8. Toggle **Quote Mute** on or off as needed.
+9. Open any **CurrentRMS opportunity** — you’ll see stock tags and mute toggles on each item row.
+10. Open the **Quote Dashboard** either from the popup or via the “Quote Dashboard” tab in the CurrentRMS navigation bar.
 
-## Stock Display Modes
+---
 
-### How Date-Aware Mode Works
+## Liquid Template Setup (for Quote Mute PDFs)
 
-1. When you open an opportunity, the extension immediately fetches the opportunity's start and end dates
-2. It queries all overlapping opportunities (orders and reserved quotations) from the API
-3. For each overlapping opportunity, it fetches the item list and tallies committed quantities per product per store
-4. This commitment data is cached for 15 minutes and shared across all products on the page
-5. For each item row, it fetches the product's held stock per store and subtracts firm commitments
-6. The current store's availability is read directly from CurrentRMS's own DOM (the green/red number it already displays) for perfect accuracy
-7. Results are displayed as colour-coded tags with hover tooltips showing job details
+To enable Quote Mute on client PDFs:
 
-### API Usage
+1. In CurrentRMS, go to **System Setup → Document Templates**.
+2. Edit your **quote template body**.
+3. Use the portable `mute-system-snippet.liquid` to add mute support to an existing template.
+4. The snippet is organised into three logical sections:
+   - **Section A** — goes at the very top and prepares the values used later in the template.
+   - **Section B** — wraps around your item rendering loop so muted content is excluded from the output.
+   - **Section C** — shows how to build a cost summary using the adjusted values.
 
-Date-aware mode makes the following API calls on first load:
-- 1 call to fetch the opportunity details (dates, store)
-- 1–2 calls to list overlapping opportunities (paginated)
-- ~10–15 calls to fetch items for each overlapping order/reserved quote (parallelised)
-- 1 call per product for stock levels (held quantities)
+The template takes care of **hiding muted items and groups** and ensures your **subtotals and grand totals line up** with what’s actually shown on the PDF.
 
-After the initial cache build (~2–3 seconds), subsequent product lookups are instant. The cache is shared across all items on the page and persists for 15 minutes.
+---
 
-CurrentRMS API rate limit: 60 requests per 60 seconds. The extension stays well within this limit.
+## Department & Dashboard Configuration
 
-## Department Configuration
+Each dashboard column (department) can be triggered by a combination of:
 
-Each department can be triggered by any combination of:
-- **Product IDs** — exact CurrentRMS product IDs (comma-separated)
-- **Product Groups** — select from a dropdown populated from your account
-- **Keywords** — live-search your product names or add custom keywords
+- **Product IDs** — specific CurrentRMS product IDs
+- **Product Groups** — selected from a dropdown of your account’s groups
+- **Keywords** — searched against product names and/or custom keywords
 
-A quote appears in a department's column if **any** of its line items match **any** of that department's rules.
+A quote appears in a department’s column if **any** of its line items match **any** of that department’s rules.
 
-## Email Alerts Setup (EmailJS)
+This allows you to model departments in a flexible way — by product type, by product group, by keywords, or a mix of all three.
 
-The extension sends styled HTML alert emails via [EmailJS](https://www.emailjs.com/) (free tier: 200 emails/month).
+---
 
-### One-time setup (2 minutes):
+## Email Alerts (Optional, via EmailJS)
 
-1. Create a free account at [emailjs.com](https://www.emailjs.com/signup)
-2. Go to **Email Services** → add your Gmail/Outlook → copy the **Service ID**
-3. Go to **Email Templates** → Create New Template:
+The extension can send **styled HTML email alerts** when quotes have been sitting on the dashboard longer than your chosen threshold.
+
+Quick one‑time setup with [EmailJS](https://www.emailjs.com/) (free tier available):
+
+1. Create a free account at `emailjs.com`.
+2. Add your email provider under **Email Services** and copy the **Service ID**.
+3. Under **Email Templates**, create a template with:
    - **To Email:** `{{to_email}}`
    - **Subject:** `{{subject}}`
-   - **Content** (switch to Code editor): `{{{html_body}}}` ← triple braces!
-4. Save → copy the **Template ID**
-5. Go to **Account** → copy your **Public Key**
-6. Paste all three into the dashboard settings
+   - **Content:** `{{{html_body}}}` (triple braces to allow HTML)
+4. Copy your **Template ID** and **Public Key**.
+5. Paste these values into the **dashboard settings** in the extension.
 
-The email design is built into the extension — every installation sends the same professional styled alert.
+Once configured, the dashboard can trigger **automated notifications** to your team when quotes need attention.
+
+---
 
 ## Updating
 
-When a new version is available, the extension popup will show a green notification with a download link.
+When a new version is available, the extension popup shows a **green notification** with a download link.
 
 To update manually:
-1. Download the latest zip from this repo
-2. Extract and replace the files in your extension folder
-3. Go to `chrome://extensions` → click the reload button on RMS Multitool
 
-## Version History
+1. Download the latest zip from this repo.
+2. Extract and replace the files in your existing extension folder.
+3. Go to `chrome://extensions` and click the **reload** button on RMS Multitool.
 
-- **1.3.0** — Date-aware stock availability mode, colour-coded store tags, hover tooltips with job details, two-phase cache loading, pre-warm on page load, 15-minute cache, parallel API requests, three-mode stock toggle (Off/Simple/Date-Aware), live settings reload
-- **1.2.0** — Kanban dashboard, email alerts, auto-update checker, live product search, CurrentRMS nav tab, remote branding
-- **1.1.0** — Dashboard feature added
-- **1.0.0** — Initial release with multi-store stock checker
+---
+
+## Releasing a New Version (for maintainers)
+
+When you cut a new version:
+
+1. Update `version.json` with the new `version` and `changelog`.
+2. Update the `CURRENT_VERSION` constant in `popup.js`.
+3. Update the `version` field in `manifest.json`.
+
+Push the changes to the `main` branch. Existing installations will see the update notification the next time they open the popup.
+
+---
+
+## Version History (Highlights)
+
+- **1.4.5**
+  - Enhancements to Quote Mute (faster toggling, clearer visual states, better totals handling)
+  - Quote Dashboard improvements (month navigation and more graceful handling under load)
+  - Crew Dashboard refinements (month navigation and clearer default view)
+  - Liquid template improvements for cleaner handling of muted content
+- **1.4.0**
+  - Initial release of the **Quote Mute** system with eye toggles and Liquid integration
+- **1.3.0**
+  - **Date‑Aware** stock availability with colour‑coded tags and hover details
+- **1.2.0**
+  - **Kanban quote dashboard**, email alerts, auto‑update checker, and navigation tab integration
+- **1.1.0**
+  - First version of the **dashboard** feature
+- **1.0.0**
+  - Initial release with the **multi‑store stock checker**
