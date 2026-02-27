@@ -40,19 +40,18 @@
     const s = document.createElement('style');
     s.id = 'rms-mute-style';
     s.textContent = `
-      /* Keep controls in a single row so buttons sit side by side */
       td.edit-controls-column {
         white-space: nowrap;
       }
 
       /* Toggle button — full mute (hide + adjust totals) */
       .mute-toggle {
-        display: inline-flex; align-items: center; justify-content: center;
-        width: 28px; height: 28px; border-radius: 5px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        width: 24px; height: 18px; border-radius: 4px; cursor: pointer;
         border: 1px solid rgba(107,184,255,0.3); transition: all 0.15s ease;
         opacity: 0.7; background: rgba(107,184,255,0.06); padding: 0;
         vertical-align: middle; position: relative; z-index: 10; flex-shrink: 0;
-        margin-left: 4px;
+        margin: 0 auto 3px auto;
       }
       /* Off state: RMS Multitool accent lines, ON state: bright red lines. */
       .mute-toggle { color: #071317; }
@@ -61,17 +60,17 @@
       .mute-toggle.muted { opacity: 1; background: rgba(255,77,106,0.12); border-color: rgba(255,77,106,0.4); }
       .mute-toggle.muted:hover { background: rgba(255,77,106,0.22); border-color: rgba(255,77,106,0.6); }
       .mute-toggle svg,
-      .mute-toggle-hide svg { width: 16px; height: 16px; }
+      .mute-toggle-hide svg { width: 12px; height: 12px; }
       .mute-toggle.busy { pointer-events: none; opacity: 0.3; }
 
       /* Hide-only toggle — hide from client, keep totals */
       .mute-toggle-hide {
-        display: inline-flex; align-items: center; justify-content: center;
-        width: 28px; height: 28px; border-radius: 5px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        width: 24px; height: 18px; border-radius: 4px; cursor: pointer;
         border: 1px solid rgba(0,229,160,0.35); transition: all 0.15s ease;
         opacity: 0.7; background: rgba(0,229,160,0.06); padding: 0;
         vertical-align: middle; position: relative; z-index: 10; flex-shrink: 0;
-        margin-left: 4px;
+        margin: 0 auto;
       }
       .mute-toggle-hide { color: #071317; }
       .mute-toggle-hide.active { color: #ff4d6a; }
@@ -233,7 +232,7 @@
         applyHideOnlyStyle(li, isGroup);
       }
 
-      // Find the edit-controls cell on the right side of the row
+      // Find the edit-controls cell on the right side of the row (original placement)
       const controlsCell = li.querySelector(':scope > table td.edit-controls-column');
       if (!controlsCell) return; // Can't inject toggle, but style was already applied above
 
