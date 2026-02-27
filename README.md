@@ -34,23 +34,50 @@ The goal is to make it obvious, from the quote screen alone, **where stock can b
 
 Hide groups and items from client‑facing PDFs **without** deleting them from the opportunity.
 
-- **Per‑row eye toggles**:
-  - Each item and group row in the opportunity editor gets an eye icon
-  - Click to **mute/unmute** content that you don’t want the client to see (e.g. internal allowances, backup items, discounts, or internal breakdowns)
-- **Client PDFs stay clean**:
-  - Muted groups and items are **omitted from the PDF** while staying in the opportunity for internal use
-  - Totals are **automatically adjusted** so the PDF numbers match what the client is meant to see
-- **Visual feedback in the editor**:
-  - Muted rows are **dimmed with a red tint** and show a clear “MUTED” indicator
-  - Child rows of a muted group visually follow the parent’s state so it’s obvious what’s hidden
-- **Totals that match what’s visible**:
-  - The **opportunity total at the bottom** of the page shows both the adjusted total and a “was $X” reference
-  - The **revenue summary panel** (Rental Charge Total, Charge Total, Tax Total, Total With Tax) also reflects muted amounts with “was” indicators
-- **Safe for teams**:
-  - Mute state is stored centrally so **all users see the same mute/unmute status**
-  - Can be **enabled or disabled from the extension popup** if you only want to use it on certain workflows
+#### Two per‑row controls
 
-On the PDF side, a dedicated Liquid template handles hiding muted content and adjusting totals, so **what you see as “live” in the editor is exactly what your client sees on the exported PDF.**
+Every item and group row in the opportunity editor gets **two small buttons** in the actions column:
+
+- **Mute ($ with strike‑through)** — *“don’t show this, and don’t charge for it on the client PDF”*
+  - Applies a `[MUTED:charge:tax]` tag that:
+    - Hides the group/item from the PDF
+    - Subtracts its charges from all client‑visible totals
+  - Button turns **bright red** when active.
+- **Hide Only (eye with strike‑through)** — *“don’t show this, but still charge for it on the client PDF”*
+  - Applies a `[HIDEONLY]` tag that:
+    - Hides the group/item from the PDF
+    - **Leaves all totals unchanged** (money still counted)
+
+You can use these together, for example:
+
+- Mute a whole group of internal costs with **Mute ($)**.
+- Hide accessories or breakdown rows with **Hide Only (eye)** so the client sees a clean line but the full value is still billed.
+
+#### Behaviour in the opportunity editor
+
+- **Per‑row eye/money toggles**:
+  - Click either button to **toggle the mode** for that group/item.
+  - State is stored via the CurrentRMS API, so it survives page reloads and is shared across users.
+- **Visual feedback**:
+  - Fully muted rows are **dimmed with a red tint** and show a clear “MUTED” badge.
+  - Child rows of a muted group visually follow the parent’s state so it’s obvious what’s hidden.
+- **Totals that match “what the client sees”**:
+  - The **opportunity total at the bottom** of the page shows both the adjusted total and a “was $X” reference for fully muted content.
+  - The **revenue summary panel** (Rental Charge Total, Charge Total, Tax Total, Total With Tax) also reflects muted amounts with “was” indicators.
+  - **Hide Only** rows affect visibility only; they do **not** change any of these totals.
+
+#### PDFs stay in sync
+
+On the PDF side, a dedicated Liquid template:
+
+- Hides:
+  - Any group/item tagged with `[MUTED:charge:tax]`
+  - Any group/item tagged with `[HIDEONLY]`
+- Adjusts totals **only** for `[MUTED:charge:tax]`:
+  - Muted charges/tax are subtracted from subtotals and grand totals.
+  - Hide‑only content is hidden from line‑items but its value remains in all totals.
+
+This means the numbers shown on the PDF always match the combination of **visible + hide‑only** items, while fully muted content is both hidden and removed from the client‑visible totals.
 
 ---
 
@@ -71,7 +98,7 @@ A Kanban‑style overview of upcoming quotes so your team can see **what’s com
 - **Monitoring and alerts**:
   - A **“time on board”** timer for each card shows how long it has been waiting in that column
   - Optional **email alerts** can notify you when a quote has been sitting too long
-- **Built for the office:
+- **Built for the office:**
   - Designed to be **TV/monitor friendly** for constant display in the office
   - Integrated directly into **CurrentRMS navigation** as a “Quote Dashboard” tab
 
@@ -105,7 +132,7 @@ Use this view as a **live schedule for services**, separate from the gear and qu
 6. Configure your **stores** (name and ID for each).
 7. Choose your **stock display mode** (Off / Simple / Date‑Aware).
 8. Toggle **Quote Mute** on or off as needed.
-9. Open any **CurrentRMS opportunity** — you’ll see stock tags and mute toggles on each item row.
+9. Open any **CurrentRMS opportunity** — you’ll see stock tags and mute/hide toggles on each item row.
 10. Open the **Quote Dashboard** either from the popup or via the “Quote Dashboard” tab in the CurrentRMS navigation bar.
 
 ---
@@ -116,13 +143,37 @@ To enable Quote Mute on client PDFs:
 
 1. In CurrentRMS, go to **System Setup → Document Templates**.
 2. Edit your **quote template body**.
-3. Use the portable `mute-system-snippet.liquid` to add mute support to an existing template.
-4. The snippet is organised into three logical sections:
-   - **Section A** — goes at the very top and prepares the values used later in the template.
-   - **Section B** — wraps around your item rendering loop so muted content is excluded from the output.
-   - **Section C** — shows how to build a cost summary using the adjusted values.
+3. Either:
+   - Paste the provided `quote-template-body.liquid` / `quote-template-body-tty-*.liquid` file, **or**
+   - Use the portable `mute-system-snippet.liquid` to add mute support to an existing template.
 
-The template takes care of **hiding muted items and groups** and ensures your **subtotals and grand totals line up** with what’s actually shown on the PDF.
+The snippet is organised into three logical sections:
+
+- **Section A — Calculation block**
+  - Goes at the very **top** of the template.
+  - Scans `order.items` to:
+    - Detect groups/items tagged with `[MUTED:charge:tax]`
+    - Sum their muted charge and tax
+    - Expose adjusted totals via variables:
+      - `active_ex_tax`, `active_tax_total`, `active_inc_tax`
+      - `active_rental_total`, `active_service_total`, `active_sale_total`
+- **Section B — Rendering filter**
+  - Wraps your `{% for item in order.items %}` loop.
+  - Hides:
+    - Any group/item where the name or description contains `[MUTED` (fully muted)
+    - Any group/item where the name or description contains `[HIDEONLY]` (hide‑only)
+  - Uses the depth of groups to:
+    - Hide nested children within muted/hidden groups
+    - Strip `[MUTED:…]` and `[HIDEONLY]` from visible group/subtotal labels
+- **Section C — Cost summary**
+  - Shows how to build a summary table using the `active_*` variables so:
+    - Fully muted content is **removed** from client totals
+    - Hide‑only content is **still included** (only the lines are hidden)
+
+In short:
+
+- **`[MUTED:charge:tax]`** → hide on PDF **and** subtract from totals.
+- **`[HIDEONLY]`** → hide on PDF, but **do not** subtract from totals.
 
 ---
 
@@ -169,27 +220,13 @@ To update manually:
 2. Extract and replace the files in your existing extension folder.
 3. Go to `chrome://extensions` and click the **reload** button on RMS Multitool.
 
----
-
-## Releasing a New Version (for maintainers)
-
-When you cut a new version:
-
-1. Update `version.json` with the new `version` and `changelog`.
-2. Update the `CURRENT_VERSION` constant in `popup.js`.
-3. Update the `version` field in `manifest.json`.
-
-Push the changes to the `main` branch. Existing installations will see the update notification the next time they open the popup.
-
----
-
 ## Version History (Highlights)
 
 - **1.4.5**
-  - Enhancements to Quote Mute (faster toggling, clearer visual states, better totals handling)
+  - **Quote Mute**: dual‑mode controls (Mute vs Hide Only), faster toggling, clearer visual states, improved totals handling
   - Quote Dashboard improvements (month navigation and more graceful handling under load)
   - Crew Dashboard refinements (month navigation and clearer default view)
-  - Liquid template improvements for cleaner handling of muted content
+  - Liquid template improvements for cleaner handling of muted and hide‑only content
 - **1.4.0**
   - Initial release of the **Quote Mute** system with eye toggles and Liquid integration
 - **1.3.0**
