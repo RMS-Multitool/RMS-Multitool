@@ -1,59 +1,28 @@
 {% comment %}
   ═══════════════════════════════════════════════════════════════════════════════
   RMS MULTITOOL — MUTE SYSTEM (Liquid Snippet for CurrentRMS Quote Templates)
-  Version: 1.0
+  Version: 1.1 (adds [HIDEONLY] support)
   ═══════════════════════════════════════════════════════════════════════════════
 
   PURPOSE:
   Works with the RMS Multitool Chrome Extension's quote mute feature.
   When a group or item is muted via the extension, this Liquid code:
-    1. Hides the muted groups/items from the rendered PDF
-    2. Subtracts their charges from all totals (cost summary, subtotals, grand total)
+    1. Hides the muted (and hide-only) groups/items from the rendered PDF
+    2. Subtracts ONLY muted charges from all totals (cost summary, subtotals, grand total)
 
   HOW IT WORKS:
-  The extension writes [MUTED:charge:tax] into group names and [MUTED] into
-  item descriptions via the CurrentRMS API. This snippet parses those tags,
-  sums the muted amounts, and subtracts them from the order totals.
+  - The extension writes [MUTED:charge:tax] into group names and item descriptions via the CurrentRMS API.
+  - It also writes [HIDEONLY] when you choose “Hide Only” (hide lines but keep money in totals).
+  - This snippet:
+      • Parses [MUTED:charge:tax] tags and sums muted amounts
+      • Hides both [MUTED...] and [HIDEONLY] content from the PDF
+      • Subtracts only MUTED amounts from totals; HIDEONLY is visibility-only
 
-  ─────────────────────────────────────────────────────────────────────────────
-  SETUP INSTRUCTIONS:
-  ─────────────────────────────────────────────────────────────────────────────
+  Tags used:
+    - [MUTED:charge:tax] → hide AND subtract from totals
+    - [HIDEONLY]         → hide ONLY, totals unchanged
 
-  STEP 1 — PASTE SECTION A at the very top of your template body (before any HTML).
-           This calculates the muted totals.
-
-  STEP 2 — REPLACE all references to order totals with the active_* variables:
-
-           INSTEAD OF:                         USE:
-           order.charge_excluding_tax_total  →  active_ex_tax
-           order.tax_total                   →  active_tax_total
-           order.rental_charge_total         →  active_rental_total
-           order.service_charge_total        →  active_service_total
-           order.sale_charge_total           →  active_sale_total
-
-           For totals including tax, use:       active_inc_tax
-
-           For visibility checks, use:
-             {% assign check_rental = active_rental_total | plus: 0 %}
-             {% if check_rental != 0 %}...{% endif %}
-
-  STEP 3 — WRAP your item rendering loop with SECTION B (the rendering filter).
-           This hides muted groups/items from the PDF output.
-
-  STEP 4 — UPDATE any subtotal rows to use adjusted values (see Section B notes).
-
-  ─────────────────────────────────────────────────────────────────────────────
-  COMPATIBILITY:
-  ─────────────────────────────────────────────────────────────────────────────
-  • Works with nested groups at any depth
-  • Handles both group-level muting and individual item muting
-  • Compatible with *HIDE* tag system (if you use it)
-  • Multi-user safe — state is stored in the API, not the browser
-  • No muted items = no effect (all active_* variables equal order.* values)
-
-  ═══════════════════════════════════════════════════════════════════════════════
 {% endcomment %}
-
 
 {% comment %}
   ═══════════════════════════════════════════════════════════════════════════════
@@ -124,12 +93,11 @@
 {% assign active_service_total = order.service_charge_total %}
 {% assign active_sale_total = order.sale_charge_total %}
 
-
 {% comment %}
   ═══════════════════════════════════════════════════════════════════════════════
   SECTION B — RENDERING FILTER
   Wrap your item rendering loop (the {% for item in order.items %} block)
-  with this logic to hide muted groups and items from the PDF.
+  with this logic to hide muted/hide-only groups and items from the PDF.
 
   NOTE: Adapt the HTML inside to match YOUR template's structure.
   The example below shows a typical 4-column table layout.
@@ -156,7 +124,7 @@
     {%- endif -%}
 
     {%- comment %} Enter hidden/muted state {% endcomment %}
-    {%- if item.name contains '*HIDE*' -%}
+    {%- if item.name contains '*HIDE*' or item.name contains '[HIDEONLY]' -%}
       {%- assign render_hidden = true -%}
       {%- assign render_hidden_depth = item.depth -%}
     {%- elsif item.name contains '[MUTED' -%}
@@ -173,9 +141,12 @@
       {%- endif -%}
     {%- endif -%}
 
-    {%- comment %} Render group header only if visible (strip [MUTED...] from name) {% endcomment %}
+    {%- comment %} Render group header only if visible (strip [MUTED...] and [HIDEONLY] from name) {% endcomment %}
     {%- unless render_hidden or render_muted -%}
-      {%- assign clean_group_name = item.name | split: ' [MUTED' | first -%}
+      {%- assign clean_group_name = item.name
+         | split: ' [MUTED' | first
+         | split: ' [HIDEONLY' | first
+      -%}
       <tr>
         <td colspan="4">
           <strong>{{ clean_group_name }}</strong>
@@ -196,7 +167,10 @@
     {%- unless render_hidden or render_muted -%}
       {%- if item.depth == 1 -%}
         {%- comment %} Clean label and only adjust subtotal for the group containing muted items {% endcomment %}
-        {%- assign clean_subtotal_name = item.subtotal_name | split: ' [MUTED' | first -%}
+        {%- assign clean_subtotal_name = item.subtotal_name
+           | split: ' [MUTED' | first
+           | split: ' [HIDEONLY' | first
+        -%}
         {%- if current_d1_has_muted -%}
           {%- assign adjusted_subtotal = item.subtotal | minus: muted_charge_sum -%}
           <tr>
@@ -215,7 +189,7 @@
 
   {%- elsif item.is_item? and item.is_accessory? == false -%}
     {%- unless render_hidden or render_muted -%}
-      {%- unless item.description contains '[MUTED' -%}
+      {%- unless item.description contains '[MUTED' or item.description contains '[HIDEONLY]' -%}
         <tr>
           {%- comment %} ADAPT THIS to your template's item row structure {% endcomment -%}
           <td>{{ item.name }}</td>
@@ -228,7 +202,6 @@
 
   {%- endif -%}
 {%- endfor -%}
-
 
 {% comment %}
   ═══════════════════════════════════════════════════════════════════════════════

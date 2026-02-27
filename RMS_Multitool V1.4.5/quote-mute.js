@@ -6,6 +6,7 @@
   'use strict';
 
   const MUTE_TAG = '[MUTED]';
+  const HIDE_ONLY_TAG = '[HIDEONLY]'; // hide from client, keep totals
   let subdomain = '';
   let apiKey = '';
   let oppId = null;
@@ -39,7 +40,12 @@
     const s = document.createElement('style');
     s.id = 'rms-mute-style';
     s.textContent = `
-      /* Toggle button — sits inside edit-controls-column (right side) */
+      /* Keep controls in a single row so buttons sit side by side */
+      td.edit-controls-column {
+        white-space: nowrap;
+      }
+
+      /* Toggle button — full mute (hide + adjust totals) */
       .mute-toggle {
         display: inline-flex; align-items: center; justify-content: center;
         width: 28px; height: 28px; border-radius: 5px; cursor: pointer;
@@ -48,13 +54,30 @@
         vertical-align: middle; position: relative; z-index: 10; flex-shrink: 0;
         margin-left: 4px;
       }
+      /* Off state: RMS Multitool accent lines, ON state: bright red lines. */
+      .mute-toggle { color: #071317; }
+      .mute-toggle.muted { color: #ff4d6a; }
       .mute-toggle:hover { opacity: 1; background: rgba(107,184,255,0.15); border-color: rgba(107,184,255,0.5); transform: scale(1.05); }
       .mute-toggle.muted { opacity: 1; background: rgba(255,77,106,0.12); border-color: rgba(255,77,106,0.4); }
       .mute-toggle.muted:hover { background: rgba(255,77,106,0.22); border-color: rgba(255,77,106,0.6); }
-      .mute-toggle svg { width: 16px; height: 16px; }
-      .mute-toggle .eye-on { color: #6bb8ff; }
-      .mute-toggle .eye-off { color: #ff4d6a; }
+      .mute-toggle svg,
+      .mute-toggle-hide svg { width: 16px; height: 16px; }
       .mute-toggle.busy { pointer-events: none; opacity: 0.3; }
+
+      /* Hide-only toggle — hide from client, keep totals */
+      .mute-toggle-hide {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 28px; height: 28px; border-radius: 5px; cursor: pointer;
+        border: 1px solid rgba(0,229,160,0.35); transition: all 0.15s ease;
+        opacity: 0.7; background: rgba(0,229,160,0.06); padding: 0;
+        vertical-align: middle; position: relative; z-index: 10; flex-shrink: 0;
+        margin-left: 4px;
+      }
+      .mute-toggle-hide { color: #071317; }
+      .mute-toggle-hide.active { color: #ff4d6a; }
+      .mute-toggle-hide:hover { opacity: 1; background: rgba(0,229,160,0.16); border-color: rgba(0,229,160,0.55); transform: scale(1.05); }
+      .mute-toggle-hide.active { opacity: 1; background: rgba(0,229,160,0.18); border-color: rgba(0,229,160,0.75); }
+      .mute-toggle-hide.busy { pointer-events: none; opacity: 0.3; }
 
       /* Muted item row — red tint */
       li.grid-body-row.mute-dimmed > table {
@@ -125,8 +148,35 @@
   }
 
   // ── SVG icons ─────────────────────────────────────────────
-  const eyeOnSVG = `<svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
-  const eyeOffSVG = `<svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+  // Full mute (OFF): money icon (no strike)
+  const eyeOnSVG = `<svg class="icon-mute-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"></circle>
+    <path d="M9 9.5c0-1.1.9-2 2.5-2h1c1.6 0 2.5.9 2.5 2 0 1.1-.9 2-2.3 2.3l-1.4.3c-1.4.3-2.3 1.2-2.3 2.3 0 1.1.9 2 2.5 2h1c1.6 0 2.5-.9 2.5-2"></path>
+    <path d="M12 6v2"></path>
+    <path d="M12 16v2"></path>
+  </svg>`;
+
+  // Full mute (ON): money icon with strike-through
+  const eyeOffSVG = `<svg class="icon-mute-money-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"></circle>
+    <path d="M9 9.5c0-1.1.9-2 2.5-2h1c1.6 0 2.5.9 2.5 2 0 1.1-.9 2-2.3 2.3l-1.4.3c-1.4.3-2.3 1.2-2.3 2.3 0 1.1.9 2 2.5 2h1c1.6 0 2.5-.9 2.5-2"></path>
+    <path d="M12 6v2"></path>
+    <path d="M12 16v2"></path>
+    <path d="M6 6l12 12"></path>
+  </svg>`;
+
+  // Hide-only (OFF): normal eye
+  const eyeHideOffSVG = `<svg class="eye-hide-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"></path>
+    <circle cx="12" cy="12" r="2.5"></circle>
+  </svg>`;
+
+  // Hide-only (ON): eye with strike-through
+  const eyeHideOnSVG = `<svg class="eye-hide-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"></path>
+    <circle cx="12" cy="12" r="2.5"></circle>
+    <path d="M4 4l16 16"></path>
+  </svg>`;
 
   // ── Observe DOM for item rows ─────────────────────────────
   function startObserving() {
@@ -158,6 +208,7 @@
   // ── Muted state cache (fetched from API, persists across re-injections) ────
   let mutedIds = new Set(); // Set of item IDs that are muted
   let mutedCharges = {}; // { itemId: { charge: number, tax: number } } for groups
+  let hideOnlyIds = new Set(); // Set of item IDs that are hide-only (client hidden, totals unchanged)
 
   // ── Find and inject toggle buttons on each row ────────────
   function injectToggles() {
@@ -178,6 +229,9 @@
       if (mutedIds.has(itemId)) {
         applyMutedStyle(li, isGroup);
       }
+      if (hideOnlyIds.has(itemId)) {
+        applyHideOnlyStyle(li, isGroup);
+      }
 
       // Find the edit-controls cell on the right side of the row
       const controlsCell = li.querySelector(':scope > table td.edit-controls-column');
@@ -190,7 +244,7 @@
         btn = document.createElement('button');
         btn.className = 'mute-toggle';
         btn.innerHTML = eyeOnSVG;
-        btn.title = 'Mute — hide from client quote';
+        btn.title = 'Mute — hide from client quote and adjust totals';
         btn.dataset.itemId = itemId;
         btn.dataset.isGroup = isGroup ? '1' : '0';
 
@@ -215,6 +269,37 @@
         btn.className = 'mute-toggle muted';
         btn.innerHTML = eyeOffSVG;
         btn.title = 'Unmute — show on client quote';
+      }
+
+      // Hide-only toggle button (client hidden, totals unchanged)
+      let hideBtn = li.querySelector(':scope > table td.edit-controls-column .mute-toggle-hide');
+      if (!hideBtn) {
+        hideBtn = document.createElement('button');
+        hideBtn.className = 'mute-toggle-hide';
+        hideBtn.innerHTML = eyeHideOffSVG;
+        hideBtn.title = 'Hide only — hide from client quote, keep money';
+        hideBtn.dataset.itemId = itemId;
+        hideBtn.dataset.isGroup = isGroup ? '1' : '0';
+
+        hideBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          toggleHideOnly(itemId, isGroup, hideBtn, li);
+        });
+
+        const dropdown = controlsCell.querySelector('.dropdown, .action-menu');
+        if (dropdown) {
+          controlsCell.insertBefore(hideBtn, dropdown);
+        } else {
+          controlsCell.appendChild(hideBtn);
+        }
+      }
+
+      if (hideOnlyIds.has(itemId)) {
+        hideBtn.classList.add('active');
+        hideBtn.innerHTML = eyeHideOnSVG;
+        hideBtn.title = 'Unhide — show on client quote';
       }
     });
 
@@ -311,7 +396,7 @@
         }
       }
 
-      console.log(`[Quote Mute] ${isGroup ? 'Group' : 'Item'} ${itemId} → ${newMuted ? 'MUTED' : 'UNMUTED'}`);
+      console.log(`[Quote Mute] ${isGroup ? 'Group' : 'Item'} ${itemId} → ${newMuted ? 'MUTED (full)' : 'UNMUTED'}`);
 
     } catch (err) {
       console.error(`[Quote Mute] Error toggling ${itemId}:`, err);
@@ -319,6 +404,76 @@
       processing.delete(itemId);
       btn.classList.remove('busy');
       updateSummaryBar();
+    }
+  }
+
+  // ── Hide-only toggle (no totals change) ─────────────────────
+  async function toggleHideOnly(itemId, isGroup, btn, li) {
+    if (processing.has('hide:' + itemId)) return;
+    processing.add('hide:' + itemId);
+    btn.classList.add('busy');
+
+    try {
+      const data = await apiFetch(
+        `https://api.current-rms.com/api/v1/opportunities/${oppId}/opportunity_items/${itemId}`
+      );
+      const item = data.opportunity_item;
+      if (!item) throw new Error('Item not found');
+
+      const sourceText = isGroup ? (item.name || '') : (item.description || '');
+      const currentlyHidden = new RegExp('\\' + HIDE_ONLY_TAG).test(sourceText);
+      const newHidden = !currentlyHidden;
+
+      if (isGroup) {
+        let name = item.name || '';
+        if (newHidden && !name.includes(HIDE_ONLY_TAG)) {
+          name = name.trim() + ' ' + HIDE_ONLY_TAG;
+        } else if (!newHidden) {
+          name = name.replace(new RegExp('\\s*\\' + HIDE_ONLY_TAG, 'g'), '').trim();
+        }
+        await apiFetch(
+          `https://api.current-rms.com/api/v1/opportunities/${oppId}/opportunity_items/${itemId}`,
+          { method: 'PUT', body: JSON.stringify({ opportunity_item: { name } }) }
+        );
+        const nameEl = li.querySelector(':scope > table .group-name, :scope > table .dd-content.editable');
+        if (nameEl) {
+          nameEl.dataset.value = name;
+          nameEl.textContent = name.replace(new RegExp('\\s*\\' + HIDE_ONLY_TAG, 'g'), '').trim();
+        }
+      } else {
+        let desc = item.description || '';
+        if (newHidden && !desc.includes(HIDE_ONLY_TAG)) {
+          desc = (desc ? desc + '\n' : '') + HIDE_ONLY_TAG;
+        } else if (!newHidden) {
+          desc = desc.replace(new RegExp('\\n?\\s*\\' + HIDE_ONLY_TAG, 'g'), '').trim();
+        }
+        await apiFetch(
+          `https://api.current-rms.com/api/v1/opportunities/${oppId}/opportunity_items/${itemId}`,
+          { method: 'PUT', body: JSON.stringify({ opportunity_item: { description: desc } }) }
+        );
+      }
+
+      if (newHidden) {
+        hideOnlyIds.add(String(itemId));
+        // If something was fully muted before, keep that state (this is additive)
+        applyHideOnlyStyle(li, isGroup);
+      } else {
+        hideOnlyIds.delete(String(itemId));
+        removeHideOnlyStyle(li, isGroup);
+      }
+
+      btn.classList.toggle('active', newHidden);
+      btn.innerHTML = newHidden ? eyeHideOnSVG : eyeHideOffSVG;
+      btn.title = newHidden
+        ? 'Unhide — show on client quote'
+        : 'Hide only — hide from client quote, keep money';
+
+      console.log(`[Quote Mute] ${isGroup ? 'Group' : 'Item'} ${itemId} → ${newHidden ? 'HIDE-ONLY' : 'VISIBLE'}`);
+    } catch (err) {
+      console.error(`[Quote Mute] Error toggling hide-only ${itemId}:`, err);
+    } finally {
+      processing.delete('hide:' + itemId);
+      btn.classList.remove('busy');
     }
   }
 
@@ -554,6 +709,29 @@
     }
   }
 
+  function applyHideOnlyStyle(li, isGroup) {
+    // Reuse muted visual styles but without affecting totals
+    li.classList.add(isGroup ? 'mute-group-dimmed' : 'mute-dimmed');
+
+    const nameCell = li.querySelector(':scope > table td.dd-name')
+                  || li.querySelector(':scope > table .dd-content.editable')
+                  || li.querySelector(':scope > table .group-name');
+    if (nameCell && !nameCell.querySelector('.mute-badge')) {
+      const badge = document.createElement('span');
+      badge.className = 'mute-badge';
+      badge.textContent = 'MUTED';
+      nameCell.appendChild(badge);
+    }
+  }
+
+  function removeHideOnlyStyle(li, isGroup) {
+    // Only strip styles if the row is not fully muted
+    const id = li.dataset.id;
+    if (id && mutedIds.has(id)) return;
+    li.classList.remove('mute-group-dimmed', 'mute-dimmed');
+    li.querySelectorAll(':scope > table .mute-badge').forEach(b => b.remove());
+  }
+
   // ── API helper ────────────────────────────────────────────
   async function apiFetch(url, options = {}) {
     const headers = {
@@ -757,7 +935,7 @@
         page++;
       }
 
-      // Build the mutedIds set from API data
+      // Build the mutedIds and hideOnlyIds sets from API data
       if (allItems.length > 0) {
         console.log('[Quote Mute] Sample API item fields:', Object.keys(allItems[0]));
         console.log('[Quote Mute] Sample API item:', JSON.stringify(allItems[0]).substring(0, 500));
@@ -766,6 +944,7 @@
         if (anyMuted) console.log('[Quote Mute] Found muted item in API:', JSON.stringify(anyMuted).substring(0, 500));
         else console.log('[Quote Mute] No item contains MUTED in any field!');
       }
+      hideOnlyIds = new Set();
       for (const item of allItems) {
         // Groups have opportunity_item_type === 0 (Group), items have 1 (Principal) or 2 (Accessory)
         const isGroup = item.opportunity_item_type === 0 || item.opportunity_item_type_name === 'Group';
@@ -774,6 +953,7 @@
         
         // Check both name and description for any item type
         const isMuted = /\[MUTED/.test(name) || /\[MUTED/.test(desc);
+        const isHideOnly = name.includes(HIDE_ONLY_TAG) || desc.includes(HIDE_ONLY_TAG);
 
         if (isMuted) {
           mutedIds.add(String(item.id));
@@ -799,6 +979,10 @@
               };
             }
           }
+        }
+
+        if (isHideOnly) {
+          hideOnlyIds.add(String(item.id));
         }
       }
 
@@ -851,6 +1035,7 @@
   function disableMuteUI() {
     // Remove all mute toggles
     document.querySelectorAll('.mute-toggle').forEach(btn => btn.remove());
+    document.querySelectorAll('.mute-toggle-hide').forEach(btn => btn.remove());
     // Remove all muted styles
     document.querySelectorAll('.mute-dimmed, .mute-group-dimmed').forEach(el => {
       el.classList.remove('mute-dimmed', 'mute-group-dimmed');
@@ -880,6 +1065,8 @@
       }
     }
     document.querySelectorAll('.mute-revenue-indicator').forEach(i => i.remove());
+    mutedIds = new Set();
+    hideOnlyIds = new Set();
     console.log('[Quote Mute] Disabled');
   }
 
