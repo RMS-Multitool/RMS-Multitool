@@ -1,0 +1,4 @@
+{
+  "version": "1.4.5",
+  "changelog": "Quote Mute: instant toggle, red dimming, page total & revenue panel overrides, on/off toggle in popup, state persistence. Dashboards: month navigation, API rate limiting."
+}
