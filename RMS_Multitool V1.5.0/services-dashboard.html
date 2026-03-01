@@ -43,11 +43,9 @@
     .logo-mark {
       width: 34px; height: 34px; border-radius: 9px;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-      box-shadow: 0 0 20px var(--accent-glow); overflow: hidden;
+      box-shadow: 0 0 20px var(--accent-glow); background: var(--surface); border: 1px solid var(--border);
     }
-    .logo-mark img { width: 34px; height: 34px; object-fit: cover; }
-    .logo-mark--fallback { background: var(--accent); }
-    .logo-mark--fallback svg { width: 18px; height: 18px; fill: var(--bg); }
+    .logo-mark svg { width: 18px; height: 18px; stroke: var(--accent); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .top-bar h1 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; line-height: 1; }
     .top-bar .subtitle { font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; margin-top: 1px; }
     .top-bar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
@@ -304,7 +302,9 @@
   </div>
   <div class="top-bar">
     <div class="logo-mark" id="logoMark">
-      <div class="logo-mark--fallback"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg></div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
     </div>
     <div>
       <h1>Crew & Vehicle Dashboard</h1>

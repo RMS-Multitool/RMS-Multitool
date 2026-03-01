@@ -11,6 +11,7 @@ const TEST_BYPASS_CODE = '';
 
 // Your backend URL for validating customer codes (Lemon Squeezy license API on Vercel).
 // API: POST JSON { "code": "USER_ENTERED_CODE" }, respond { "valid": true, "type": "unlock" } or { "valid": false }
+// Must be deployed from the license-api folder; see license-api/DEPLOY-INSTRUCTIONS.md if you get 404.
 const LICENSE_API_URL = 'https://rms-multitool.vercel.app/api/validate';
 
 // Start 7-day trial automatically when the extension is first installed
@@ -99,6 +100,82 @@ function validateLicenseCode(code, cb) {
 
 function getHeaders(subdomain, apiKey) {
     return { 'X-SUBDOMAIN': subdomain, 'X-AUTH-TOKEN': apiKey, 'Content-Type': 'application/json' };
+}
+
+// ── Rate-limited Current RMS API queue (avoids 429 across dashboards and background) ─
+const CURRENT_RMS_MIN_GAP_MS = 260;
+const CURRENT_RMS_MAX_CONCURRENT = 2;
+const CURRENT_RMS_429_WAIT_MS = 2200;
+const currentRmsQueue = [];
+let currentRmsLastTime = 0;
+let currentRmsInFlight = 0;
+
+function processCurrentRmsQueue() {
+    if (currentRmsQueue.length === 0 || currentRmsInFlight >= CURRENT_RMS_MAX_CONCURRENT) return;
+
+    const gap = CURRENT_RMS_MIN_GAP_MS - (Date.now() - currentRmsLastTime);
+    if (gap > 0) {
+        setTimeout(processCurrentRmsQueue, gap);
+        return;
+    }
+
+    const item = currentRmsQueue.shift();
+    if (!item) return;
+
+    currentRmsInFlight++;
+    currentRmsLastTime = Date.now();
+
+    (async () => {
+        let settings;
+        try {
+            settings = await new Promise(r => chrome.storage.sync.get(['subdomain', 'apiKey'], r));
+        } catch (e) {
+            currentRmsInFlight--;
+            item.reject(e);
+            processCurrentRmsQueue();
+            return;
+        }
+        if (!settings.subdomain || !settings.apiKey) {
+            currentRmsInFlight--;
+            item.reject(new Error('not_configured'));
+            processCurrentRmsQueue();
+            return;
+        }
+
+        const headers = getHeaders(settings.subdomain, settings.apiKey);
+        try {
+            let res = await fetch(item.url, { method: 'GET', headers });
+            if (res.status === 429) {
+                await new Promise(r => setTimeout(r, CURRENT_RMS_429_WAIT_MS));
+                res = await fetch(item.url, { method: 'GET', headers });
+            }
+            if (res.status === 429) {
+                await new Promise(r => setTimeout(r, CURRENT_RMS_429_WAIT_MS * 1.5));
+                res = await fetch(item.url, { method: 'GET', headers });
+            }
+            if (!res.ok) {
+                const msg = res.status === 429 ? 'API 429 — Too many requests. Try again in a moment.' : 'API ' + res.status;
+                item.reject(new Error(msg));
+                currentRmsInFlight--;
+                processCurrentRmsQueue();
+                return;
+            }
+            const data = await res.json();
+            item.resolve(data);
+        } catch (e) {
+            item.reject(e);
+        } finally {
+            currentRmsInFlight--;
+            processCurrentRmsQueue();
+        }
+    })();
+}
+
+function enqueueCurrentRmsFetch(url) {
+    return new Promise((resolve, reject) => {
+        currentRmsQueue.push({ url, resolve, reject });
+        processCurrentRmsQueue();
+    });
 }
 
 // ── Auto-create "Ready for prep" custom field in Current RMS (global field, data per quote) ─
@@ -344,6 +421,21 @@ async function getCommitments(startDate, endDate, currentOppId, headers) {
 
 // ── Message handler ──────────────────────────────────────────
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    // Rate-limited Current RMS GET — dashboards use this to avoid 429
+    if (request.action === 'currentRmsFetch' && request.url && request.url.indexOf('api.current-rms.com') !== -1) {
+        const SEND_RESPONSE_TIMEOUT_MS = 55000;
+        let responded = false;
+        function once(response) {
+            if (responded) return;
+            responded = true;
+            try { sendResponse(response); } catch (e) { /* channel already closed */ }
+        }
+        const timeoutId = setTimeout(() => once({ success: false, error: 'Request timed out' }), SEND_RESPONSE_TIMEOUT_MS);
+        enqueueCurrentRmsFetch(request.url)
+            .then(data => { clearTimeout(timeoutId); once({ success: true, data }); })
+            .catch(err => { clearTimeout(timeoutId); once({ success: false, error: (err && err.message) || String(err) }); });
+        return true;
+    }
     if (request.action === 'openTab' && request.url) {
         chrome.tabs.create({ url: request.url }, function () {
             sendResponse(typeof chrome.runtime.lastError === 'undefined' ? { success: true } : { success: false });

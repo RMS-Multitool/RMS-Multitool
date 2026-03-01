@@ -274,23 +274,27 @@
     const qs = paramsArray.map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
     return `${base}?${qs}`;
   }
-  async function apiFetch(url, retries = 3) {
-    for (let attempt = 0; attempt < retries; attempt++) {
-      const r = await fetch(url, {
-        method: 'GET',
-        headers: { 'X-SUBDOMAIN': subdomain, 'X-AUTH-TOKEN': apiKey, 'Content-Type': 'application/json' }
+  function apiFetch(url) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ action: 'currentRmsFetch', url }, (response) => {
+        if (chrome.runtime.lastError) { reject(new Error(chrome.runtime.lastError.message)); return; }
+        if (response && response.success === true) { resolve(response.data); return; }
+        reject(new Error((response && response.error) || 'Request failed'));
       });
-      if (r.status === 429) {
-        // Rate limited — wait and retry
-        const wait = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
-        console.warn(`[Dashboard] Rate limited (429), waiting ${wait}ms before retry ${attempt + 1}/${retries}`);
-        await sleep(wait);
-        continue;
-      }
-      if (!r.ok) throw new Error(`API ${r.status}`);
-      return r.json();
-    }
-    throw new Error('API 429: rate limited after retries');
+    });
+  }
+
+  function venueName(val) {
+    if (val == null) return '';
+    if (typeof val === 'string') return val.trim();
+    if (typeof val === 'object') return (val.name || val.venue_name || val.display_name || '').trim();
+    return String(val).trim();
+  }
+  function memberName(val) {
+    if (val == null) return '';
+    if (typeof val === 'string') return val.trim();
+    if (typeof val === 'object') return (val.name || val.organisation_name || val.display_name || '').trim();
+    return String(val).trim();
   }
 
   // ── Load product groups ──────────────────────────────────
@@ -332,7 +336,7 @@
     const stateMap = { draft: 1, provisional_quotation: 2, reserved_quotation: 3, order: 4 };
     const stateCodes = config.stages.map(s => stateMap[s]).filter(Boolean);
     while (true) {
-      const params = [['per_page', String(perPage)], ['page', String(page)], ['q[s][]', 'starts_at asc'], ['q[ends_at_gteq]', nowISO]];
+      const params = [['per_page', String(perPage)], ['page', String(page)], ['q[s][]', 'starts_at asc'], ['q[ends_at_gteq]', nowISO], ['include[]', 'member'], ['include[]', 'location'], ['include[]', 'venue']];
       stateCodes.forEach(code => params.push(['q[state_in][]', String(code)]));
       const url = buildApiUrl('opportunities', params);
       console.log(`[Dashboard] Fetching page ${page}: ${url}`);
@@ -555,8 +559,8 @@ Sent by RMS Multitool Quote Dashboard<br>Quote unattended for <strong style="col
                   stateRaw: opp.state,
                   starts: opp.starts_at || opp.start_date || '',
                   ends: opp.ends_at || opp.end_date || '',
-                  member: opp.member_name || (opp.member ? opp.member.name : ''),
-                  destination: opp.destination || '',
+                  member: memberName(opp.member_name || opp.member),
+                  destination: venueName(opp.location || opp.location_name || opp.destination || opp.venue || opp.venue_name),
                   triggerItems: matches.map(it => it.name || it.item_name || 'Unknown')
                 });
               }

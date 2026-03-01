@@ -121,11 +121,21 @@ function attachTooltip(tagEl, store) {
     tagEl.addEventListener('mouseenter', () => {
         const tip = ensureTooltip();
         const name = storeNames[store.store_id] || `Store ${store.store_id}`;
-        let rows = '';
+        // Group by quote (oppId or name) and sum quantities
+        const byQuote = {};
         store.jobs.forEach(j => {
+            const key = j.oppId != null ? String(j.oppId) : (j.name || '');
+            if (!byQuote[key]) byQuote[key] = { name: j.name || 'Unknown', qty: 0, state: j.state };
+            byQuote[key].qty += parseFloat(j.qty) || 0;
+            if (j.state === 'booked' || (j.state === 'reserved' && byQuote[key].state !== 'booked') || (j.state === 'quoted' && byQuote[key].state !== 'booked' && byQuote[key].state !== 'reserved'))
+                byQuote[key].state = j.state;
+        });
+        const grouped = Object.values(byQuote);
+        let rows = '';
+        grouped.forEach(j => {
             const cls = j.state === 'booked' ? 'booked' : j.state === 'reserved' ? 'reserved' : 'quoted';
             const lbl = j.state === 'booked' ? '⬤ Booked' : j.state === 'reserved' ? '◉ Allocated' : '○ Provisional';
-            rows += `<div class="tt-row ${cls}"><span class="tt-job-name">${esc(j.name)}</span><span>×${j.qty} ${lbl}</span></div>`;
+            rows += `<div class="tt-row ${cls}"><span class="tt-job-name">${esc(j.name)}</span><span>×${Math.round(j.qty)} ${lbl}</span></div>`;
         });
         tip.innerHTML = `
             <div class="tt-title">${esc(name)} — ${store.held} held</div>

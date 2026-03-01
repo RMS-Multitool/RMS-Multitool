@@ -60,17 +60,13 @@
       return `${base}?${qs}`;
     }
 
-    function apiFetch(url, retries) {
-      retries = retries == null ? 2 : retries;
-      return fetch(url, {
-        method: 'GET',
-        headers: { 'X-SUBDOMAIN': subdomain, 'X-AUTH-TOKEN': apiKey, 'Content-Type': 'application/json' }
-      }).then(function (r) {
-        if (r.ok) return r.json();
-        if (r.status === 429 && retries > 0) {
-          return new Promise(function (resolve) { setTimeout(resolve, 1500); }).then(function () { return apiFetch(url, retries - 1); });
-        }
-        throw new Error(r.status === 429 ? 'API 429 — Too many requests. The dashboard is loading fewer jobs now; try refreshing in a moment.' : 'API ' + r.status);
+    function apiFetch(url) {
+      return new Promise(function (resolve, reject) {
+        chrome.runtime.sendMessage({ action: 'currentRmsFetch', url }, function (response) {
+          if (chrome.runtime.lastError) { reject(new Error(chrome.runtime.lastError.message)); return; }
+          if (response && response.success === true) { resolve(response.data); return; }
+          reject(new Error((response && response.error) || 'Request failed'));
+        });
       });
     }
 
@@ -341,7 +337,8 @@
       setLoading('Loading opportunities...');
       const now = new Date();
       const pastIso = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
-      const LIST_PAGE_SIZE = 50;
+      const LIST_PAGE_SIZE = 40;
+      const MAX_JOBS_TO_LOAD = 35;
       let allOpps = [];
       try {
         const params = [
@@ -355,7 +352,7 @@
         const listUrl = buildApiUrl('opportunities', params);
         const data = await apiFetch(listUrl);
         const opps = data.opportunities || [];
-        allOpps = opps.slice(0, LIST_PAGE_SIZE);
+        allOpps = opps.slice(0, MAX_JOBS_TO_LOAD);
       } catch (e) {
         setLoaded();
         const msg = (e && e.message) || String(e);
@@ -387,13 +384,9 @@
       }
 
       setLoading('Loading prep status (' + allOpps.length + ' jobs)...');
-      const BATCH = 5;
-      const BATCH_DELAY_MS = 350;
       try {
-        for (let i = 0; i < allOpps.length; i += BATCH) {
-          if (i > 0) await new Promise(function (r) { setTimeout(r, BATCH_DELAY_MS); });
-          const batch = allOpps.slice(i, i + BATCH);
-          await Promise.all(batch.map(async (opp) => {
+        for (let i = 0; i < allOpps.length; i++) {
+          const opp = allOpps[i];
             try {
               const url = buildApiUrl('opportunities/' + opp.id, [['include[]', 'owner'], ['include[]', 'member'], ['include[]', 'custom_fields'], ['include[]', 'item_assets'], ['include[]', 'opportunity_items'], ['include[]', 'opportunity_items.item_assets'], ['include[]', 'supplier_item_assets']]);
               const data = await apiFetch(url);
@@ -487,8 +480,7 @@
               opp.opportunity_items = [];
               opp.supplier_item_assets = [];
             }
-          }));
-          const prog = 'Loading prep status (' + Math.min(i + BATCH, allOpps.length) + '/' + allOpps.length + ')...';
+          const prog = 'Loading prep status (' + (i + 1) + '/' + allOpps.length + ')...';
           if (loadingText) loadingText.textContent = prog;
           if (statTotal) statTotal.textContent = prog;
         }

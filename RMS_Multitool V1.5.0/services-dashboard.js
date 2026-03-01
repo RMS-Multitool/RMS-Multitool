@@ -279,10 +279,26 @@
     return `${base}?${qs}`;
   }
   function apiFetch(url) {
-    return fetch(url, {
-      method: 'GET',
-      headers: { 'X-SUBDOMAIN': subdomain, 'X-AUTH-TOKEN': apiKey, 'Content-Type': 'application/json' }
-    }).then(r => { if (!r.ok) throw new Error(`API ${r.status}`); return r.json(); });
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ action: 'currentRmsFetch', url }, (response) => {
+        if (chrome.runtime.lastError) { reject(new Error(chrome.runtime.lastError.message)); return; }
+        if (response && response.success === true) { resolve(response.data); return; }
+        reject(new Error((response && response.error) || 'Request failed'));
+      });
+    });
+  }
+
+  function venueName(val) {
+    if (val == null) return '';
+    if (typeof val === 'string') return val.trim();
+    if (typeof val === 'object') return (val.name || val.venue_name || val.display_name || '').trim();
+    return String(val).trim();
+  }
+  function memberName(val) {
+    if (val == null) return '';
+    if (typeof val === 'string') return val.trim();
+    if (typeof val === 'object') return (val.name || val.organisation_name || val.display_name || '').trim();
+    return String(val).trim();
   }
 
   // ── Load service types (used as keyword categories for matching) ──
@@ -336,7 +352,10 @@
         ['per_page', String(perPage)],
         ['page', String(page)],
         ['q[s][]', 'starts_at asc'],
-        ['q[starts_at_gteq]', startFromISO]
+        ['q[starts_at_gteq]', startFromISO],
+        ['include[]', 'member'],
+        ['include[]', 'location'],
+        ['include[]', 'venue']
       ];
       stateCodes.forEach(code => params.push(['q[state_in][]', String(code)]));
       const url = buildApiUrl('opportunities', params);
@@ -655,8 +674,8 @@ Sent by RMS Multitool Crew & Vehicle Dashboard<br>Job unattended for <strong sty
                   stateRaw: opp.state,
                   starts: opp.starts_at || '',
                   ends: opp.ends_at || '',
-                  member: opp.member_name || (opp.member ? opp.member.name : '') || '',
-                  destination: opp.destination || opp.venue_name || '',
+                  member: memberName(opp.member_name || opp.member),
+                  destination: venueName(opp.location || opp.location_name || opp.destination || opp.venue || opp.venue_name),
                   serviceItems: richItems,
                   crewCount,
                   vehicleCount,
