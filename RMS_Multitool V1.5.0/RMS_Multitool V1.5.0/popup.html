@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RMS Multitool Settings</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f0f12; --surface: #17171d; --surface2: #1e1e26;
+      --border: #2a2a35; --accent: #00e5a0; --accent-dim: rgba(0,229,160,0.10);
+      --accent-glow: rgba(0,229,160,0.22); --text: #f0f0f5; --text-muted: #6b6b80;
+      --error: #ff4d6a; --error-dim: rgba(255,77,106,0.12);
+    }
+    body { width: 400px; background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; overflow: hidden; }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 32px 32px; opacity: 0.2; pointer-events: none;
+    }
+    .container { position: relative; padding: 22px; z-index: 1; }
+
+    /* Header */
+    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; animation: slideDown 0.4s ease; }
+    .logo { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 0 18px var(--accent-glow); overflow: hidden; }
+    .logo img { width: 34px; height: 34px; object-fit: cover; }
+    .logo--fallback { background: var(--accent); }
+    .logo--fallback svg { width: 18px; height: 18px; fill: var(--bg); }
+    .header-text h1 { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 800; letter-spacing: -0.3px; color: var(--text); line-height: 1; }
+    .header-text span { font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
+    .status-badge { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); padding: 4px 10px; border-radius: 20px; transition: all 0.3s ease; white-space: nowrap; }
+    .status-badge.connected { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; transition: all 0.3s ease; }
+    .status-badge.connected .status-dot { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+
+    .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin-bottom: 20px; }
+    .section-title { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* Fields */
+    .field { margin-bottom: 14px; }
+    label { display: block; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 7px; }
+    .input-wrap { position: relative; }
+    input[type="text"], input[type="password"] { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 10px 36px 10px 13px; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); outline: none; transition: all 0.2s ease; }
+    input[type="text"]::placeholder, input[type="password"]::placeholder { color: var(--text-muted); }
+    input[type="text"]:focus, input[type="password"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+    input.error { border-color: var(--error); box-shadow: 0 0 0 3px var(--error-dim); }
+    .input-icon { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+
+    /* Stores section */
+    .stores-section { margin-bottom: 20px; max-height: 320px; overflow-y: auto; padding-right: 2px; }
+    .stores-section::-webkit-scrollbar { width: 4px; }
+    .stores-section::-webkit-scrollbar-track { background: transparent; }
+    .stores-section::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .store-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; opacity: 0; animation: fadeIn 0.3s ease forwards; }
+    .store-toggle { appearance: none; width: 32px; height: 18px; background: var(--border); border-radius: 10px; cursor: pointer; position: relative; flex-shrink: 0; transition: background 0.2s ease; }
+    .store-toggle::after { content: ''; position: absolute; width: 12px; height: 12px; background: var(--text-muted); border-radius: 50%; top: 3px; left: 3px; transition: all 0.2s ease; }
+    .store-toggle:checked { background: var(--accent); }
+    .store-toggle:checked::after { background: var(--bg); left: 17px; }
+    .store-id-badge { background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 5px 7px; font-size: 10px; color: var(--text-muted); white-space: nowrap; min-width: 30px; text-align: center; flex-shrink: 0; }
+    .store-name-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 11px; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); outline: none; transition: all 0.2s ease; min-width: 0; }
+    .store-name-input::placeholder { color: var(--text-muted); }
+    .store-name-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+    .store-row.disabled .store-name-input { opacity: 0.35; pointer-events: none; }
+    .store-row.disabled .store-id-badge { opacity: 0.35; }
+
+    /* Loading state */
+    .stores-loading { display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-size: 12px; padding: 12px 0; }
+    .stores-error { color: var(--error); font-size: 12px; padding: 8px 0; }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 8px; margin-top: 18px; }
+    button { flex: 1; padding: 10px; border: none; border-radius: 7px; font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; letter-spacing: 0.3px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-test { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); }
+    .btn-test:hover { border-color: var(--text-muted); color: var(--text); }
+    .btn-save { background: var(--accent); color: var(--bg); font-weight: 700; box-shadow: 0 0 16px var(--accent-glow); }
+    .btn-save:hover { transform: translateY(-1px); box-shadow: 0 4px 20px var(--accent-glow); }
+    .btn-save:active { transform: translateY(0); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+    /* Dashboard button */
+    .btn-dashboard {
+      width: 100%; margin-top: 14px; padding: 11px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 7px; color: var(--text);
+      font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s ease; display: flex;
+      align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-dashboard:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+    .btn-dashboard svg { flex-shrink: 0; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 9px 16px; font-size: 12px; color: var(--text); white-space: nowrap; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); z-index: 100; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { border-color: var(--accent); color: var(--accent); }
+    .toast.error { border-color: var(--error); color: var(--error); }
+
+    .spinner { width: 11px; height: 11px; border: 2px solid transparent; border-top-color: currentColor; border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; flex-shrink: 0; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes slideDown { from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)} }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo" id="popupLogo">
+        <img src="https://raw.githubusercontent.com/RMS-Multitool/RMS-Multitool/main/icons/icon-128.png"
+             alt="RMS Multitool"
+             onerror="this.parentElement.classList.add('logo--fallback'); this.outerHTML='<svg viewBox=&quot;0 0 24 24&quot;><path d=&quot;M20 7H4C2.9 7 2 7.9 2 9v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-9 8H5v-2h6v2zm8 0h-2v-2h2v2zm0-4H5v-2h14v2zM15 5H9V3h6v2z&quot;/></svg>';">
+      </div>
+      <div class="header-text">
+        <h1>RMS Multitool</h1>
+        <span>Multi-Store Stock Settings</span>
+      </div>
+      <div class="status-badge" id="statusBadge">
+        <div class="status-dot"></div>
+        <span id="statusText">Not set</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="section-title">API Connection</div>
+
+    <div class="field">
+      <label>Subdomain</label>
+      <div class="input-wrap">
+        <input type="text" id="subdomain" placeholder="yourcompany" autocomplete="off" spellcheck="false"/>
+        <svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom: 20px;">
+      <label>API Key</label>
+      <div class="input-wrap">
+        <input type="password" id="apiKey" placeholder="••••••••••••••••••••" autocomplete="off" spellcheck="false"/>
+        <svg class="input-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="section-title">Stock Display Mode <span style="font-size:9px; font-weight:400; color:var(--text-muted); text-transform:none; letter-spacing:0;">(no license required)</span></div>
+
+    <div class="stock-mode-section" style="margin-bottom:18px;">
+      <div class="stock-mode-row" style="display:flex; gap:6px; margin-bottom:8px;">
+        <button class="stock-mode-btn" data-mode="off" style="flex:1; padding:8px 4px; font-size:10px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); cursor:pointer; font-family:'DM Mono',monospace; transition:all 0.2s;">Off</button>
+        <button class="stock-mode-btn active" data-mode="simple" style="flex:1; padding:8px 4px; font-size:10px; border-radius:6px; border:1px solid var(--accent); background:var(--accent-dim); color:var(--accent); cursor:pointer; font-family:'DM Mono',monospace; font-weight:700; transition:all 0.2s;">Simple</button>
+        <button class="stock-mode-btn" data-mode="date-aware" style="flex:1; padding:8px 4px; font-size:10px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--text-muted); cursor:pointer; font-family:'DM Mono',monospace; transition:all 0.2s;">Date-Aware</button>
+      </div>
+      <div id="stockModeDesc" style="font-size:10px; color:var(--text-muted); line-height:1.5; padding:0 2px;">
+        Shows total held stock per enabled store.
+      </div>
+    </div>
+
+    <div class="section-title">License</div>
+    <div id="licenseSection" style="margin-bottom:16px; padding:12px; background:var(--surface); border:1px solid var(--border); border-radius:7px;">
+      <div id="licenseStatus" style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">Checking…</div>
+      <div id="purchaseBlock" style="display:none; margin-bottom:12px; padding:10px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:6px;">
+        <a id="purchaseLink" href="#" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; gap:6px; padding:8px 12px; background:var(--accent); color:var(--bg); font-size:12px; font-weight:700; text-decoration:none; border-radius:6px; font-family:'DM Mono',monospace;">Purchase full version</a>
+      </div>
+      <div class="field" style="margin-bottom:8px;">
+        <label>Trial or unlock code</label>
+        <div class="input-wrap">
+          <input type="text" id="licenseCodeInput" placeholder="Enter license key from purchase" autocomplete="off" spellcheck="false" style="text-transform:uppercase;"/>
+        </div>
+      </div>
+      <button class="btn-save" id="licenseCodeBtn" style="width:100%;">Activate</button>
+    </div>
+
+    <div id="quoteMuteBlock" style="display:none;">
+    <div class="section-title">Quote Mute &amp; Hide</div>
+
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px; padding:10px 12px; background:var(--surface); border:1px solid var(--border); border-radius:7px;">
+      <input type="checkbox" class="store-toggle" id="quoteMuteToggle" checked title="Enable Quote Mute on opportunity pages"/>
+      <div style="flex:1;">
+        <div style="font-size:12px; color:var(--text); font-weight:500;">Hide items from client quotes</div>
+        <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Toggle $ and eye icons on opportunity items to mute/hide from PDF output</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" style="flex-shrink:0;">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+      </svg>
+    </div>
+    </div>
+
+    <div class="section-title">
+      Stores
+      <button class="btn-test" id="refreshStoresBtn" style="flex:0;padding:3px 10px;font-size:10px;border-radius:5px;" title="Refresh store list">↻ Refresh</button>
+    </div>
+
+    <div class="stores-section" id="storesSection">
+      <div class="stores-loading">
+        <span class="spinner"></span> Enter credentials above to load stores
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-test" id="testBtn">Test Connection</button>
+      <button class="btn-save" id="saveBtn">Save All Settings</button>
+    </div>
+
+    <div class="divider" style="margin-top:20px;margin-bottom:0;"></div>
+
+    <button class="btn-dashboard" id="dashboardBtn" style="display:none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+      </svg>
+      Open Quote Dashboard
+      <span style="font-size:10px;color:var(--text-muted);margin-left:4px;">↗</span>
+    </button>
+    <button class="btn-dashboard" id="crewDashboardBtn" style="display:none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      Open Crew & Transport
+      <span style="font-size:10px;color:var(--text-muted);margin-left:4px;">↗</span>
+    </button>
+    <button class="btn-dashboard" id="warehouseDashboardBtn" style="display:none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+      Open Warehouse Dashboard
+      <span style="font-size:10px;color:var(--text-muted);margin-left:4px;">↗</span>
+    </button>
+
+    <!-- Update checker -->
+    <div id="updateSection" style="display:none; margin-top:14px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:12px 14px;">
+      <div id="updateContent"></div>
+    </div>
+  </div>
+
+  <div style="text-align:center; padding:8px 0 4px;">
+    <span style="font-size:11px;color:var(--accent);letter-spacing:0.5px;font-family:'Syne',sans-serif;font-weight:700;">created by Dan Hawes</span>
+  </div>
+  <div style="text-align:center; padding:0 0 14px;">
+    <span id="versionBadge" style="font-size:10px; color:var(--text-muted); background:var(--surface); border:1px solid var(--border); border-radius:5px; padding:3px 8px; font-family:'DM Mono',monospace;"></span>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
