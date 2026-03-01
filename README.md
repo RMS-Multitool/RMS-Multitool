@@ -8,7 +8,7 @@ Chrome extension for [CurrentRMS](https://www.current-rms.com/) — multi-store 
 
 All other features require a valid license. **New installs get a 7-day free trial** with full access. After the trial, enter your license code in the extension popup to continue.
 
-**Features that need a license (trial or code):**
+**Features that need a license (After a 7 Day free trial):**
 - Quote Mute (hide items/groups from client PDFs)
 - Quote Dashboard (Kanban, email alerts, department config)
 - Crew/Services Dashboard
@@ -220,13 +220,3 @@ To update manually:
 1. Download the latest zip from this repo
 2. Extract and replace the files in your extension folder
 3. Go to `chrome://extensions` → click the reload button on RMS Multitool
-
-## Version History
-
-- **1.5.0** — Lemon Squeezy license validation via Vercel API, 7-day trial, dev console helper for testing. Single codebase; license-api deploy docs. Warehouse dashboard, Mark ready to prep.
-- **1.4.5** — Quote Mute: instant toggle (2 API calls only), red-tinted dimming, page total & revenue panel overrides with "was" indicators, nested group deduplication, clean name display, on/off toggle in popup, state persistence across page refresh. Dashboard: month navigation, API rate limiting with exponential backoff. Crew Dashboard: month navigation, default All Months mode. Liquid template: subtotal-based charge extraction, depth-aware muted group tracking, clean tag stripping
-- **1.4.0** — Quote Mute system: eye toggle icons, `[MUTED]` tagging via API, Liquid template integration, mute cascade, summary bar, portable snippet
-- **1.3.0** — Date-aware stock availability, colour-coded store tags, hover tooltips, two-phase cache, pre-warm, 15-minute cache, three-mode stock toggle, live settings reload
-- **1.2.0** — Kanban dashboard, email alerts, auto-update checker, live product search, CurrentRMS nav tab
-- **1.1.0** — Dashboard feature added
-- **1.0.0** — Initial release with multi-store stock checker
