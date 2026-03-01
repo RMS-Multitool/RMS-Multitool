@@ -14,6 +14,8 @@ All other features require a valid license. **New installs get a 7-day free tria
 - Crew/Services Dashboard
 - Warehouse Dashboard (Ready to prep, Mark ready to prep, Loaded for delivery)
 
+one time purchase of $25 to unlock all features
+
 ---
 
 ## Features
