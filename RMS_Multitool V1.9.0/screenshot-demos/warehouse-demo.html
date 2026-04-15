@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RMS Multitool — Warehouse Dashboard (screenshot demo)</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0e; --surface: #131318; --surface2: #1a1a22;
+      --border: #2a2a35; --accent: #00e5a0; --accent-dim: rgba(0,229,160,0.08);
+      --accent-glow: rgba(0,229,160,0.22); --text: #f0f0f5; --text-muted: #d0d0e0;
+      --error: #ff4d6a; --warning: #ffb347; --blue: #4d9fff;
+    }
+    html, body { height: 100%; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; overflow: hidden; }
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: 0;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px; opacity: 0.10; pointer-events: none;
+    }
+    .top-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      background: rgba(10,10,14,0.88); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 28px; display: flex; align-items: center; gap: 14px; height: 58px;
+    }
+    .logo-mark { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 0 20px var(--accent-glow); background: var(--accent); }
+    .logo-mark svg { width: 18px; height: 18px; fill: var(--bg); }
+    .top-bar h1 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+    .top-bar .subtitle { font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; margin-top: 1px; }
+    .top-bar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+    .stat-pill { font-size: 11px; padding: 5px 12px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); }
+    .refresh-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 14px; color: var(--text-muted); font-family: inherit; font-size: 11px; cursor: pointer; }
+    .refresh-select { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); font-size: 10px; padding: 4px 8px; }
+    .board { position: absolute; top: 58px; left: 0; right: 0; bottom: 0; display: flex; overflow-x: auto; overflow-y: hidden; padding: 20px; gap: 16px; z-index: 1; }
+    .wh-col { flex: 1 1 0; min-width: 260px; max-width: 480px; max-height: 100%; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .wh-col-header { padding: 14px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative; }
+    .wh-col-header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 12px 12px 0 0; }
+    .wh-col-ready .wh-col-header::before { background: var(--blue); }
+    .wh-col-prep .wh-col-header::before { background: var(--warning); }
+    .wh-col-load .wh-col-header::before { background: var(--accent); }
+    .wh-col-other .wh-col-header::before { background: var(--text-muted); }
+    .wh-col-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; text-transform: uppercase; }
+    .wh-col-count { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .wh-col-body { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .wh-card {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+      cursor: default; display: block; min-width: 0; overflow: hidden;
+    }
+    .wh-card-top { display: flex; flex-direction: row; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+    .wh-card-name { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800; color: var(--text); line-height: 1.35; flex: 1; min-width: 0; }
+    .wh-card-top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+    .wh-card-number { font-size: 11px; color: var(--text-muted); }
+    .wh-card-owner { font-size: 11px; color: var(--text-muted); text-align: right; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .wh-card-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+    .wh-card-date { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+    .wh-card-ready-date { font-size: 11px; color: var(--accent); font-weight: 500; margin-bottom: 10px; }
+    .wh-progress-wrap { margin-top: 2px; }
+    .wh-progress-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 6px; }
+    .wh-progress-row { display: flex; align-items: center; gap: 10px; }
+    .wh-progress-bar { flex: 1; min-width: 0; height: 12px; background: var(--border); border-radius: 6px; overflow: hidden; }
+    .wh-progress-fill { height: 100%; min-width: 2px; background: var(--accent); border-radius: 6px; }
+    .wh-progress-pct { font-size: 11px; font-weight: 600; color: var(--accent); min-width: 3ch; text-align: right; }
+    .wh-card-status { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; display: inline-block; margin-top: 4px; }
+    .wh-card-status.booked { background: var(--accent-dim); color: var(--accent); }
+    .wh-col-load .wh-card-status.booked { padding: 5px 14px; font-weight: 800; font-size: 11px; background: rgba(255,77,106,0.2); color: var(--error); border: 1px solid rgba(255,77,106,0.4); }
+    .wh-btn-loaded { background: var(--accent); color: var(--bg); border: none; border-radius: 8px; padding: 8px 14px; font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer; width: 100%; }
+    .demo-badge { position: fixed; bottom: 12px; right: 12px; z-index: 100; font-size: 10px; color: var(--text-muted); opacity: 0.6; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="logo-mark"><svg viewBox="0 0 24 24"><path d="M20 7H4C2.9 7 2 7.9 2 9v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-9 8H5v-2h6v2zm8 0h-2v-2h2v2zm0-4H5v-2h14v2z"/></svg></div>
+    <div>
+      <h1>Warehouse Dashboard</h1>
+      <div class="subtitle">RMS Multitool — Ready to prep · In prep · Ready to load</div>
+    </div>
+    <div class="top-bar-right">
+      <button type="button" class="refresh-btn">Show "Loaded"</button>
+      <span class="stat-pill">8 jobs</span>
+      <select class="refresh-select"><option value="60" selected>1 min</option></select>
+      <button type="button" class="refresh-btn">Refresh</button>
+    </div>
+  </div>
+  <div class="board">
+    <div class="wh-col wh-col-ready">
+      <div class="wh-col-header"><div class="wh-col-title">Ready to prep</div><div class="wh-col-count">2</div></div>
+      <div class="wh-col-body">
+        <div class="wh-card">
+          <div class="wh-card-top">
+            <span class="wh-card-name">Demo Corporate Event</span>
+            <div class="wh-card-top-right">
+              <span class="wh-card-number">#1001</span>
+              <span class="wh-card-owner">Demo User</span>
+            </div>
+          </div>
+          <div class="wh-card-meta">Order · Ends 15 Mar 2025</div>
+          <div class="wh-card-ready-date">Ready to prep: 10 Mar 2025</div>
+          <div class="wh-progress-wrap">
+            <div class="wh-progress-label">Prep progress</div>
+            <div class="wh-progress-row">
+              <div class="wh-progress-bar"><div class="wh-progress-fill" style="width:0%"></div></div>
+              <span class="wh-progress-pct">0%</span>
+            </div>
+          </div>
+        </div>
+        <div class="wh-card">
+          <div class="wh-card-top">
+            <span class="wh-card-name">Sample Wedding Hire</span>
+            <div class="wh-card-top-right">
+              <span class="wh-card-number">#1004</span>
+              <span class="wh-card-owner">Demo User</span>
+            </div>
+          </div>
+          <div class="wh-card-meta">Reserved · Ends 22 Mar 2025</div>
+          <div class="wh-card-ready-date">Ready to prep: 18 Mar 2025</div>
+          <div class="wh-progress-wrap">
+            <div class="wh-progress-label">Prep progress</div>
+            <div class="wh-progress-row">
+              <div class="wh-progress-bar"><div class="wh-progress-fill" style="width:0%"></div></div>
+              <span class="wh-progress-pct">0%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wh-col wh-col-prep">
+      <div class="wh-col-header"><div class="wh-col-title">In prep</div><div class="wh-col-count">3</div></div>
+      <div class="wh-col-body">
+        <div class="wh-card">
+          <div class="wh-card-top">
+            <span class="wh-card-name">Conference AV Package</span>
+            <div class="wh-card-top-right">
+              <span class="wh-card-number">#1002</span>
+              <span class="wh-card-owner">Demo User</span>
+            </div>
+          </div>
+          <div class="wh-card-meta">Order · Ends 12 Mar 2025</div>
+          <div class="wh-card-ready-date">Ready to prep: 8 Mar 2025</div>
+          <div class="wh-progress-wrap">
+            <div class="wh-progress-label">Prep progress</div>
+            <div class="wh-progress-row">
+              <div class="wh-progress-bar"><div class="wh-progress-fill" style="width:65%"></div></div>
+              <span class="wh-progress-pct">65%</span>
+            </div>
+          </div>
+        </div>
+        <div class="wh-card">
+          <div class="wh-card-top">
+            <span class="wh-card-name">Festival Lighting Hire</span>
+            <div class="wh-card-top-right">
+              <span class="wh-card-number">#1003</span>
+              <span class="wh-card-owner">Demo User</span>
+            </div>
+          </div>
+          <div class="wh-card-meta">Order · Ends 20 Mar 2025</div>
+          <div class="wh-card-ready-date">Ready to prep: 14 Mar 2025</div>
+          <div class="wh-progress-wrap">
+            <div class="wh-progress-label">Prep progress</div>
+            <div class="wh-progress-row">
+              <div class="wh-progress-bar"><div class="wh-progress-fill" style="width:40%"></div></div>
+              <span class="wh-progress-pct">40%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wh-col wh-col-load">
+      <div class="wh-col-header"><div class="wh-col-title">Ready to load</div><div class="wh-col-count">2</div></div>
+      <div class="wh-col-body">
+        <div class="wh-card">
+          <div class="wh-card-top">
+            <span class="wh-card-name">Exhibition Stand Build</span>
+            <div class="wh-card-top-right">
+              <span class="wh-card-number">#999</span>
+              <span class="wh-card-owner">Demo User</span>
+            </div>
+          </div>
+          <div class="wh-card-meta">Order · Ends 5 Mar 2025</div>
+          <div class="wh-card-ready-date">Ready to prep: 2 Mar 2025</div>
+          <div class="wh-progress-wrap">
+            <div class="wh-progress-label">Prep progress</div>
+            <div class="wh-progress-row">
+              <div class="wh-progress-bar"><div class="wh-progress-fill" style="width:100%"></div></div>
+              <span class="wh-progress-pct">100%</span>
+            </div>
+          </div>
+          <span class="wh-card-status booked">All booked out</span>
+          <div style="margin-top:12px; padding-top:10px; border-top:1px solid var(--border);">
+            <button type="button" class="wh-btn-loaded">Mark as loaded</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wh-col wh-col-other">
+      <div class="wh-col-header"><div class="wh-col-title">Not in workflow</div><div class="wh-col-count">1</div></div>
+      <div class="wh-col-body">
+        <div class="wh-card">
+          <div class="wh-card-top">
+            <span class="wh-card-name">Provisional Quote — Demo Co</span>
+            <div class="wh-card-top-right">
+              <span class="wh-card-number">#1005</span>
+              <span class="wh-card-owner">Demo User</span>
+            </div>
+          </div>
+          <div class="wh-card-meta">Provisional · No ready date set</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="demo-badge">Screenshot demo — fake data only</div>
+</body>
+</html>

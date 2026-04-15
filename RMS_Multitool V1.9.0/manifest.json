@@ -1,0 +1,84 @@
+{
+  "manifest_version": 3,
+  "name": "RMS Multitool",
+  "version": "1.9.0",
+  "description": "Delivery sheets, stock checker, dashboards, and crew tools for Current RMS — built for AV & event production teams.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://alvgroup.current-rms.com/*"
+      ],
+      "all_frames": true,
+      "js": [
+        "content.js",
+        "quote-mute.js",
+        "public-holiday.js"
+      ]
+    }
+  ],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "debugger",
+    "downloads",
+    "tabs",
+    "identity"
+  ],
+  "oauth2": {
+    "client_id": "291277051021-bjllphua0l5ul6p0uqs4hn3c2mfk36vi.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/drive"]
+  },
+  "host_permissions": [
+    "https://alvgroup.current-rms.com/*",
+    "https://api.current-rms.com/*",
+    "https://api.anthropic.com/*",
+    "https://api.emailjs.com/*",
+    "https://raw.githubusercontent.com/*",
+    "https://api.github.com/*",
+    "https://rms-multitool.vercel.app/*",
+    "https://current-rms.s3.amazonaws.com/*",
+    "https://cdnjs.cloudflare.com/*",
+    "https://cdn.jsdelivr.net/*",
+    "https://www.googleapis.com/*",
+    "https://docs.google.com/*",
+    "https://drive.google.com/*",
+    "https://drive.usercontent.google.com/*",
+    "https://www.dropbox.com/*",
+    "https://dl.dropboxusercontent.com/*",
+    "https://*.sharepoint.com/*",
+    "https://api.onedrive.com/*",
+    "https://1drv.ms/*",
+    "https://date.nager.at/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "RMS Multitool Settings"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "dashboard.html",
+        "services-dashboard.html",
+        "warehouse-dashboard.html",
+        "delivery-sheet.html",
+        "delivery-sheet.js",
+        "event-sheet-preview.html",
+        "event-sheet-preview.js",
+        "group-config.html",
+        "group-config.js"
+      ],
+      "matches": [
+        "https://*.current-rms.com/*"
+      ]
+    }
+  ]
+}
