@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — RMS Multitool</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      color: #1a1a1a;
+      background: #f6f8fa;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 740px;
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid #e1e4e8;
+      border-radius: 8px;
+      padding: 2.5rem 3rem;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 4px;
+      background: #ddf4ff;
+      color: #0969da;
+      margin-bottom: 1rem;
+      letter-spacing: 0.02em;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 0.25rem;
+    }
+    .meta {
+      font-size: 13px;
+      color: #6e7781;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid #e1e4e8;
+    }
+    h2 {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin: 1.75rem 0 0.5rem;
+    }
+    p {
+      margin-bottom: 0.75rem;
+      color: #24292f;
+    }
+    ul {
+      padding-left: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+    li {
+      margin-bottom: 0.35rem;
+      color: #24292f;
+    }
+    code {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 13px;
+      background: #f6f8fa;
+      border: 1px solid #e1e4e8;
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: #0550ae;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #e1e4e8;
+      margin: 1.75rem 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin: 0.75rem 0;
+    }
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      background: #f6f8fa;
+      border: 1px solid #e1e4e8;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    td {
+      padding: 8px 12px;
+      border: 1px solid #e1e4e8;
+      color: #24292f;
+      vertical-align: top;
+    }
+    a {
+      color: #0969da;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .footer {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #e1e4e8;
+      font-size: 13px;
+      color: #6e7781;
+    }
+    .footer a { color: #0969da; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">Privacy Policy</span>
+    <h1>RMS Multitool</h1>
+    <p class="meta">Last updated: April 2026 &nbsp;·&nbsp; Applies to the RMS Multitool Chrome extension</p>
+
+    <h2>Overview</h2>
+    <p>RMS Multitool is a Chrome browser extension that adds enhanced functionality to the <a href="https://www.current-rms.com/">CurrentRMS</a> web application. This policy explains what data the extension accesses, how it is used, and what is not collected.</p>
+
+    <hr>
+
+    <h2>Data accessed by the extension</h2>
+    <p>The extension reads and modifies page content within the CurrentRMS web application (<code>app.current-rms.com</code>) solely to provide its features. This includes:</p>
+    <ul>
+      <li>Quote and opportunity line items (to support the Quote Mute feature)</li>
+      <li>Product and stock availability data (to support the multi-store stock checker)</li>
+      <li>Page totals and revenue figures displayed within CurrentRMS</li>
+      <li>Opportunity date ranges (used to calculate date-aware stock availability)</li>
+    </ul>
+    <p>This data is accessed locally within your browser session and is used only to modify the display and behaviour of the CurrentRMS interface for the current user.</p>
+
+    <hr>
+
+    <h2>Data storage</h2>
+    <p>The extension stores limited preference and state data locally in your browser using Chrome's built-in storage API (<code>chrome.storage.local</code>). This data:</p>
+    <ul>
+      <li>Remains entirely on your device</li>
+      <li>Is never transmitted to any external server</li>
+      <li>Is used only to preserve your settings, store configuration, license key, and muted item state between sessions</li>
+    </ul>
+    <p>A 15-minute in-memory cache is used during a browser session to reduce API calls when using Date-Aware stock mode. This cache is not persisted to disk and is cleared when the tab is closed.</p>
+
+    <hr>
+
+    <h2>CurrentRMS API usage</h2>
+    <p>The extension makes calls to the CurrentRMS API on your behalf using the API key you provide. These calls are made directly from your browser to CurrentRMS's own servers — no data passes through any server operated by RMS Multitool. Your API key is stored locally in <code>chrome.storage.local</code> and is never transmitted anywhere other than to <code>app.current-rms.com</code>.</p>
+
+    <hr>
+
+    <h2>Email alerts (optional)</h2>
+    <p>The Quote Dashboard feature optionally integrates with <a href="https://www.emailjs.com/">EmailJS</a> to send alert emails when quotes sit unattended past a configurable threshold. If you configure this feature:</p>
+    <ul>
+      <li>Your EmailJS Service ID, Template ID, and Public Key are stored locally in <code>chrome.storage.local</code></li>
+      <li>Email content is sent directly from your browser to EmailJS's servers in accordance with <a href="https://www.emailjs.com/legal/privacy-policy/">EmailJS's own privacy policy</a></li>
+      <li>RMS Multitool does not operate or have access to any email infrastructure</li>
+    </ul>
+    <p>This feature is entirely optional and requires you to set it up with your own EmailJS account. It is not enabled by default.</p>
+
+    <hr>
+
+    <h2>Data we do not collect</h2>
+    <p>RMS Multitool does not collect, transmit, sell, or share any personal data. Specifically:</p>
+    <ul>
+      <li>No personally identifiable information (PII) is collected</li>
+      <li>No usage analytics or telemetry are gathered</li>
+      <li>No data is sent to any server operated by RMS Multitool</li>
+      <li>No browsing history outside of <code>app.current-rms.com</code> is accessed</li>
+      <li>No data is shared with third parties</li>
+    </ul>
+
+    <hr>
+
+    <h2>Permissions</h2>
+    <p>The extension requests only the permissions necessary for its features to function:</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Permission</th>
+          <th>Why it's needed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>storage</code></td>
+          <td>Save your settings, API key, store config, and muted item state locally</td>
+        </tr>
+        <tr>
+          <td><code>host_permissions: app.current-rms.com</code></td>
+          <td>Read and modify CurrentRMS pages; make API calls on your behalf</td>
+        </tr>
+        <tr>
+          <td><code>alarms</code></td>
+          <td>Power the dashboard polling interval (1–10 minute refresh cycles)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>No permissions are used to access data outside of the CurrentRMS application.</p>
+
+    <hr>
+
+    <h2>Changes to this policy</h2>
+    <p>If this policy changes in a meaningful way, the "last updated" date at the top of this page will be revised. Continued use of the extension after any update constitutes acceptance of the revised policy.</p>
+
+    <hr>
+
+    <h2>Contact</h2>
+    <p>For questions about this policy, please <a href="https://github.com/RMS-Multitool/RMS-Multitool/issues">open an issue on GitHub</a>.</p>
+
+    <div class="footer">
+      <a href="https://github.com/RMS-Multitool/RMS-Multitool">RMS Multitool on GitHub</a>
+    </div>
+  </div>
+</body>
+</html>
