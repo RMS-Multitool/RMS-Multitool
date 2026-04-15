@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RMS Multitool — Crew & Vehicle Dashboard (screenshot demo)</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0e; --surface: #131318; --surface2: #1a1a22;
+      --border: #2a2a35; --accent: #6bb8ff; --accent-dim: rgba(107,184,255,0.08);
+      --text: #f0f0f5; --text-muted: #6b6b80;
+      --warning: #ffb347; --blue: #4d9fff; --purple: #a06cff; --green: #00e5a0;
+      --crew: #a06cff; --crew-dim: rgba(160,108,255,0.10);
+      --transport: #ffb347; --transport-dim: rgba(255,179,71,0.10);
+    }
+    html, body { height: 100%; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; overflow-x: auto; overflow-y: hidden; }
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: 0;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px; opacity: 0.10; pointer-events: none;
+    }
+    .top-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      background: rgba(10,10,14,0.88); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 28px; display: flex; align-items: center; gap: 14px; height: 58px;
+    }
+    .logo-mark { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--accent); }
+    .logo-mark svg { width: 18px; height: 18px; fill: var(--bg); }
+    .top-bar h1 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+    .top-bar .subtitle { font-size: 10px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; margin-top: 1px; }
+    .top-bar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+    .stat-pill { display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 5px 12px; border-radius: 20px; white-space: nowrap; }
+    .stat-pill.total { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(107,184,255,0.2); }
+    .stat-pill.scanned { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); }
+    .poll-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); padding: 5px 12px; border-radius: 20px; }
+    .poll-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+    .settings-toggle { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; color: var(--text-muted); font-size: 11px; cursor: pointer; }
+    .clock { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -1px; text-align: right; }
+    .clock-date { font-size: 10px; color: var(--text-muted); text-align: right; }
+    .month-nav {
+      position: fixed; top: 58px; left: 0; right: 0; z-index: 40;
+      background: rgba(10,10,14,0.92); backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 28px; display: flex; align-items: center; gap: 12px; height: 42px;
+    }
+    .month-nav-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; color: var(--text-muted); font-size: 11px; cursor: pointer; }
+    .month-label { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; min-width: 200px; text-align: center; }
+    .month-today-btn { background: rgba(107,184,255,0.08); border: 1px solid rgba(107,184,255,0.25); border-radius: 6px; padding: 4px 10px; color: var(--accent); font-size: 10px; font-weight: 600; cursor: pointer; text-transform: uppercase; }
+    .month-all-btn { background: rgba(160,108,255,0.08); border: 1px solid rgba(160,108,255,0.25); border-radius: 6px; padding: 4px 10px; color: var(--purple); font-size: 10px; font-weight: 600; cursor: pointer; text-transform: uppercase; }
+    .month-all-btn.active { background: var(--purple); color: var(--bg); border-color: var(--purple); }
+    .board { position: absolute; top: 100px; left: 0; right: 0; bottom: 0; display: flex; overflow-x: auto; padding: 20px; gap: 16px; z-index: 1; }
+    .kanban-col { flex: 0 0 370px; min-width: 370px; max-height: 100%; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .col-header { padding: 14px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; position: relative; }
+    .col-header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 12px 12px 0 0; }
+    .col-draft .col-header::before { background: var(--blue); }
+    .col-quote .col-header::before { background: var(--warning); }
+    .col-reserved .col-header::before { background: var(--purple); }
+    .col-order .col-header::before { background: var(--green); }
+    .col-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .col-count { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,0.06); color: var(--text-muted); }
+    .col-body { flex: 1; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .quote-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; cursor: default; }
+    .quote-card:hover { border-color: rgba(255,255,255,0.15); }
+    .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .card-name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; line-height: 1.3; color: var(--text); }
+    .card-ref { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+    .card-stage { font-size: 9px; letter-spacing: 0.4px; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; white-space: nowrap; font-weight: 500; flex-shrink: 0; }
+    .stage-draft { background: rgba(77,159,255,0.1); color: var(--blue); border: 1px solid rgba(77,159,255,0.2); }
+    .stage-quote { background: var(--transport-dim); color: var(--transport); border: 1px solid rgba(255,179,71,0.2); }
+    .stage-reserved { background: var(--crew-dim); color: var(--crew); border: 1px solid rgba(160,108,255,0.2); }
+    .stage-order { background: rgba(0,229,160,0.08); color: var(--green); border: 1px solid rgba(0,229,160,0.2); }
+    .card-meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 10px; color: var(--text-muted); margin-bottom: 8px; }
+    .card-date { font-size: 11px; color: var(--text); margin-bottom: 6px; padding: 5px 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 5px; }
+    .service-items { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+    .service-item { display: flex; align-items: center; gap: 6px; font-size: 10px; padding: 4px 8px; border-radius: 5px; border: 1px solid var(--border); background: rgba(255,255,255,0.02); }
+    .service-item .si-icon { font-size: 12px; flex-shrink: 0; }
+    .service-item .si-name { flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .service-item .si-qty { font-weight: 600; white-space: nowrap; }
+    .service-item.crew { border-color: rgba(160,108,255,0.2); }
+    .service-item.crew .si-qty { color: var(--crew); }
+    .service-item.transport { border-color: rgba(255,179,71,0.2); }
+    .service-item.transport .si-qty { color: var(--transport); }
+    .service-summary { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .summary-chip { font-size: 9px; padding: 2px 7px; border-radius: 4px; letter-spacing: 0.2px; font-weight: 600; }
+    .summary-chip.crew-chip { background: var(--crew-dim); color: var(--crew); border: 1px solid rgba(160,108,255,0.18); }
+    .summary-chip.transport-chip { background: var(--transport-dim); color: var(--transport); border: 1px solid rgba(255,179,71,0.18); }
+    .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; gap: 8px; }
+    .card-link { font-size: 10px; color: var(--accent); text-decoration: none; opacity: 0.8; }
+    .demo-badge { position: fixed; bottom: 12px; right: 12px; z-index: 100; font-size: 10px; color: var(--text-muted); opacity: 0.6; }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="logo-mark"><svg viewBox="0 0 24 24"><path d="M20 7H4C2.9 7 2 7.9 2 9v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-9 8H5v-2h6v2zm8 0h-2v-2h2v2zm0-4H5v-2h14v2z"/></svg></div>
+    <div>
+      <h1>Crew & Vehicle Dashboard</h1>
+      <div class="subtitle">RMS Multitool — Crew and transport by date</div>
+    </div>
+    <div class="top-bar-right">
+      <div class="stat-pill total"><strong>6</strong>&nbsp;need crew/transport</div>
+      <div class="stat-pill scanned"><span>8</span>&nbsp;scanned</div>
+      <div class="poll-badge"><div class="poll-dot"></div><span>Live · 5 min</span></div>
+      <button class="settings-toggle">⚙ Settings</button>
+      <div><div class="clock">14:32</div><div class="clock-date">Fri 1 Mar 2025</div></div>
+    </div>
+  </div>
+  <div class="month-nav">
+    <button class="month-nav-btn">‹ Prev</button>
+    <div class="month-label">March 2025</div>
+    <button class="month-nav-btn">Next ›</button>
+    <button class="month-today-btn">This Month</button>
+    <button class="month-all-btn active">All Months</button>
+  </div>
+  <div class="board">
+    <div class="kanban-col col-draft">
+      <div class="col-header"><div class="col-title">Draft</div><span class="col-count">0</span></div>
+      <div class="col-body"></div>
+    </div>
+    <div class="kanban-col col-quote">
+      <div class="col-header"><div class="col-title">Provisional quotation</div><span class="col-count">1</span></div>
+      <div class="col-body">
+        <div class="quote-card">
+          <div class="card-top">
+            <span class="card-name">Demo Event — AV & Crew</span>
+            <span class="card-stage stage-quote">Prov. quote</span>
+          </div>
+          <div class="card-ref">REF-DEMO-101</div>
+          <div class="card-meta"><span>Demo User</span><span>·</span><span>Ends 25 Mar</span></div>
+          <div class="card-date">18 Mar 2025 – 25 Mar 2025</div>
+          <div class="service-summary">
+            <span class="summary-chip crew-chip">Crew × 2</span>
+            <span class="summary-chip transport-chip">Van × 1</span>
+          </div>
+          <div class="service-items">
+            <div class="service-item crew"><span class="si-icon">👷</span><span class="si-name">Technician (Crew)</span><span class="si-qty">2</span></div>
+            <div class="service-item transport"><span class="si-icon">🚐</span><span class="si-name">Delivery Van</span><span class="si-qty">1</span></div>
+          </div>
+          <div class="card-footer"><a href="#" class="card-link">Open in Current RMS →</a></div>
+        </div>
+      </div>
+    </div>
+    <div class="kanban-col col-reserved">
+      <div class="col-header"><div class="col-title">Reserved quotation</div><span class="col-count">2</span></div>
+      <div class="col-body">
+        <div class="quote-card">
+          <div class="card-top">
+            <span class="card-name">Conference 2025 — Demo Co</span>
+            <span class="card-stage stage-reserved">Reserved</span>
+          </div>
+          <div class="card-ref">REF-DEMO-095</div>
+          <div class="card-meta"><span>Demo User</span><span>·</span><span>Ends 10 Mar</span></div>
+          <div class="card-date">8 Mar 2025 – 10 Mar 2025</div>
+          <div class="service-summary">
+            <span class="summary-chip crew-chip">Crew × 4</span>
+            <span class="summary-chip transport-chip">Van × 2</span>
+          </div>
+          <div class="service-items">
+            <div class="service-item crew"><span class="si-icon">👷</span><span class="si-name">Install Crew</span><span class="si-qty">2</span></div>
+            <div class="service-item crew"><span class="si-icon">👷</span><span class="si-name">De-rig Crew</span><span class="si-qty">2</span></div>
+            <div class="service-item transport"><span class="si-icon">🚐</span><span class="si-name">Luton Van</span><span class="si-qty">2</span></div>
+          </div>
+          <div class="card-footer"><a href="#" class="card-link">Open in Current RMS →</a></div>
+        </div>
+        <div class="quote-card">
+          <div class="card-top">
+            <span class="card-name">Wedding — Sample Venue</span>
+            <span class="card-stage stage-reserved">Reserved</span>
+          </div>
+          <div class="card-ref">REF-DEMO-088</div>
+          <div class="card-meta"><span>Demo User</span><span>·</span><span>Ends 22 Mar</span></div>
+          <div class="card-date">20 Mar 2025 – 22 Mar 2025</div>
+          <div class="service-summary">
+            <span class="summary-chip crew-chip">Crew × 1</span>
+          </div>
+          <div class="service-items">
+            <div class="service-item crew"><span class="si-icon">👷</span><span class="si-name">On-site Technician</span><span class="si-qty">1</span></div>
+          </div>
+          <div class="card-footer"><a href="#" class="card-link">Open in Current RMS →</a></div>
+        </div>
+      </div>
+    </div>
+    <div class="kanban-col col-order">
+      <div class="col-header"><div class="col-title">Order</div><span class="col-count">3</span></div>
+      <div class="col-body">
+        <div class="quote-card">
+          <div class="card-top">
+            <span class="card-name">Exhibition Build — Demo Ltd</span>
+            <span class="card-stage stage-order">Order</span>
+          </div>
+          <div class="card-ref">REF-DEMO-092</div>
+          <div class="card-meta"><span>Demo User</span><span>·</span><span>Ends 5 Mar</span></div>
+          <div class="card-date">3 Mar 2025 – 5 Mar 2025</div>
+          <div class="service-summary">
+            <span class="summary-chip crew-chip">Crew × 2</span>
+            <span class="summary-chip transport-chip">Van × 1</span>
+          </div>
+          <div class="card-footer"><a href="#" class="card-link">Open in Current RMS →</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="demo-badge">Screenshot demo — fake data only</div>
+</body>
+</html>
